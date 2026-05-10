@@ -1,0 +1,55 @@
+"""
+Auto-generated MCP Service: {{ service_name }}
+Slug: {{ service_slug }}
+Transport: {{ transport }}
+"""
+from fastmcp import FastMCP
+
+# Import user handlers
+from handlers import *  # noqa: F401, F403
+import handlers
+
+mcp = FastMCP("{{ service_name }}")
+
+# ─── Register Tools ──────────────────────────────────────────────────────────
+{% for tool in tools %}
+{% if tool.is_enabled %}
+
+@mcp.tool(name="{{ tool.name }}", description="{{ tool.description }}")
+async def _tool_{{ tool.handler_name }}(**kwargs):
+    handler = getattr(handlers, "{{ tool.handler_name }}")
+    return await handler(**kwargs)
+{% endif %}
+{% endfor %}
+
+# ─── Register Resources ──────────────────────────────────────────────────────
+{% for resource in resources %}
+{% if resource.is_enabled %}
+
+@mcp.resource("{{ resource.uri_template }}", name="{{ resource.name }}", description="{{ resource.description }}", mime_type="{{ resource.mime_type }}")
+async def _resource_{{ resource.handler_name }}(**kwargs):
+    handler = getattr(handlers, "{{ resource.handler_name }}")
+    return await handler(**kwargs)
+{% endif %}
+{% endfor %}
+
+# ─── Health Check Endpoint ───────────────────────────────────────────────────
+
+from starlette.routing import Route
+from starlette.responses import JSONResponse
+
+
+async def health_check(request):
+    return JSONResponse({"status": "healthy", "service": "{{ service_slug }}"})
+
+
+# Add health route to the underlying ASGI app if possible
+try:
+    app = mcp.get_app()
+    if hasattr(app, 'routes'):
+        app.routes.append(Route("/health", health_check, methods=["GET"]))
+except Exception:
+    pass
+
+if __name__ == "__main__":
+    mcp.run(transport="{{ transport }}", host="0.0.0.0", port={{ port }})

@@ -1,0 +1,47 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: mcpilot-db
+    environment:
+      POSTGRES_USER: mcpadmin
+      POSTGRES_PASSWORD: mcpadmin123
+      POSTGRES_DB: mcpilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./data/pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcpadmin -d mcpilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: mcpilot-backend
+    ports:
+      - "8020:8020"
+    environment:
+      DATABASE_URL: postgresql+asyncpg://mcpadmin:mcpadmin123@postgres:5432/mcpilot
+      SECRET_KEY: dev-secret-key-change-in-production
+      # DOCKER_HOST 留空，由 docker.from_env() 自动检测平台
+      # Windows Docker Desktop 使用 npipe:////./pipe/docker_engine
+      # Linux/macOS 使用 unix:///var/run/docker.sock
+    volumes:
+      - ./backend:/app
+      # Docker socket 挂载：
+      # Linux/macOS: /var/run/docker.sock:/var/run/docker.sock
+      # Windows Docker Desktop 容器内自动映射，无需额外配置
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8020 --reload
+
+networks:
+  default:
+    name: mcpilot-net
