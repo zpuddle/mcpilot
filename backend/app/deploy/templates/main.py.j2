@@ -3,6 +3,8 @@ Auto-generated MCP Service: {{ service_name }}
 Slug: {{ service_slug }}
 Transport: {{ transport }}
 """
+import inspect
+from typing import Any
 from fastmcp import FastMCP
 
 # Import user handlers
@@ -11,14 +13,22 @@ import handlers
 
 mcp = FastMCP("{{ service_name }}")
 
+
+async def _invoke_handler(handler_name, **kwargs):
+    handler = getattr(handlers, handler_name)
+    result = handler(**kwargs)
+    if inspect.isawaitable(result):
+        result = await result
+    return result
+
+
 # ─── Register Tools ──────────────────────────────────────────────────────────
 {% for tool in tools %}
 {% if tool.is_enabled %}
 
 @mcp.tool(name="{{ tool.name }}", description="{{ tool.description }}")
-async def _tool_{{ tool.handler_name }}(**kwargs):
-    handler = getattr(handlers, "{{ tool.handler_name }}")
-    return await handler(**kwargs)
+async def _tool_{{ tool.handler_name }}({{ tool.signature }}):
+    return await _invoke_handler("{{ tool.handler_name }}"{% if tool.call_kwargs %}, {{ tool.call_kwargs }}{% endif %})
 {% endif %}
 {% endfor %}
 
@@ -27,9 +37,8 @@ async def _tool_{{ tool.handler_name }}(**kwargs):
 {% if resource.is_enabled %}
 
 @mcp.resource("{{ resource.uri_template }}", name="{{ resource.name }}", description="{{ resource.description }}", mime_type="{{ resource.mime_type }}")
-async def _resource_{{ resource.handler_name }}(**kwargs):
-    handler = getattr(handlers, "{{ resource.handler_name }}")
-    return await handler(**kwargs)
+async def _resource_{{ resource.handler_name }}({{ resource.signature }}):
+    return await _invoke_handler("{{ resource.handler_name }}"{% if resource.call_kwargs %}, {{ resource.call_kwargs }}{% endif %})
 {% endif %}
 {% endfor %}
 

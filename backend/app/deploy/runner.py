@@ -306,7 +306,3 @@ def cleanup_stopped_containers(client: docker.DockerClient) -> list:
             logger.warning(f"Failed to remove container {c.name}: {e}")
 
     return removed
-
-            yield line.decode("utf-8", errors="replace").strip()
-    except NotFound:
-        yield "Container not found"

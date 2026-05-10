@@ -61,7 +61,7 @@ const ToolsTab: React.FC<Props> = ({ serviceId }) => {
       title: 'Actions', key: 'actions',
       render: (_: unknown, record: ServiceTool) => (
         <Space>
-          <Button size="small" icon={<EditOutlined />} onClick={() => { setEditingTool(record); toolForm.setFieldsValue(record); setToolModalOpen(true); }} />
+          <Button size="small" icon={<EditOutlined />} onClick={() => openToolModal(record)} />
           <Popconfirm title="Delete?" onConfirm={() => deleteToolMut.mutate(record.id)}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -86,11 +86,51 @@ const ToolsTab: React.FC<Props> = ({ serviceId }) => {
   ];
 
   const handleToolSubmit = (values: Record<string, unknown>) => {
-    if (editingTool) {
-      updateToolMut.mutate({ id: editingTool.id, data: values });
-    } else {
-      createToolMut.mutate(values);
+    // Parse input_schema JSON text into object
+    const rawSchema = (values.input_schema_text as string | undefined)?.trim();
+    let inputSchema: Record<string, unknown> = {};
+    if (rawSchema) {
+      try {
+        inputSchema = JSON.parse(rawSchema);
+      } catch (e) {
+        message.error('Input Schema 不是合法的 JSON: ' + (e as Error).message);
+        return;
+      }
     }
+    const payload: Record<string, unknown> = { ...values, input_schema: inputSchema };
+    delete payload.input_schema_text;
+
+    if (editingTool) {
+      updateToolMut.mutate({ id: editingTool.id, data: payload });
+    } else {
+      createToolMut.mutate(payload);
+    }
+  };
+
+  const openToolModal = (tool: ServiceTool | null) => {
+    setEditingTool(tool);
+    if (tool) {
+      toolForm.setFieldsValue({
+        ...tool,
+        input_schema_text: tool.input_schema && Object.keys(tool.input_schema).length > 0
+          ? JSON.stringify(tool.input_schema, null, 2)
+          : '',
+      });
+    } else {
+      toolForm.resetFields();
+      toolForm.setFieldsValue({
+        is_enabled: true,
+        input_schema_text:
+`{
+  "type": "object",
+  "properties": {
+    "example_param": { "type": "string", "description": "示例参数" }
+  },
+  "required": ["example_param"]
+}`,
+      });
+    }
+    setToolModalOpen(true);
   };
 
   return (
@@ -101,7 +141,7 @@ const ToolsTab: React.FC<Props> = ({ serviceId }) => {
           label: `Tools (${tools.length})`,
           children: (
             <div>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => { setEditingTool(null); toolForm.resetFields(); setToolModalOpen(true); }} style={{ marginBottom: 16 }}>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => openToolModal(null)} style={{ marginBottom: 16 }}>
                 Add Tool
               </Button>
               <Table columns={toolColumns} dataSource={tools} rowKey="id" loading={toolsLoading} size="small" />
@@ -123,7 +163,7 @@ const ToolsTab: React.FC<Props> = ({ serviceId }) => {
       ]} />
 
       {/* Tool Modal */}
-      <Modal title={editingTool ? 'Edit Tool' : 'Add Tool'} open={toolModalOpen} onCancel={() => { setToolModalOpen(false); setEditingTool(null); }} onOk={() => toolForm.submit()}>
+      <Modal title={editingTool ? 'Edit Tool' : 'Add Tool'} open={toolModalOpen} onCancel={() => { setToolModalOpen(false); setEditingTool(null); }} onOk={() => toolForm.submit()} width={680}>
         <Form form={toolForm} layout="vertical" onFinish={handleToolSubmit}>
           <Form.Item name="name" label="Tool Name" rules={[{ required: true }]}>
             <Input placeholder="e.g. get_weather" />
@@ -133,6 +173,17 @@ const ToolsTab: React.FC<Props> = ({ serviceId }) => {
           </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={2} placeholder="What does this tool do?" />
+          </Form.Item>
+          <Form.Item
+            name="input_schema_text"
+            label="Input Schema (JSON Schema)"
+            tooltip="定义工具的输入参数结构，用于 FastMCP 生成函数签名。留空则无参数。"
+          >
+            <Input.TextArea
+              rows={10}
+              style={{ fontFamily: 'monospace' }}
+              placeholder='{"type":"object","properties":{"city":{"type":"string"}},"required":["city"]}'
+            />
           </Form.Item>
           <Form.Item name="is_enabled" label="Enabled" valuePropName="checked" initialValue={true}>
             <Switch />
