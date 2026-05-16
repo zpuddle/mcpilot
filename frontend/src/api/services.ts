@@ -95,7 +95,7 @@ export interface ServiceDependency {
 
 export async function getServiceDependencies(serviceId: number): Promise<ServiceDependency[]> {
   const res = await client.get(`/services/${serviceId}/dependencies`);
-  return res.data;
+  return res.data.dependencies ?? [];
 }
 
 export async function addServiceDependency(serviceId: number, data: {

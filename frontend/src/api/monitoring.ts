@@ -37,7 +37,7 @@ export interface AlertHistoryItem {
 
 export async function getServiceMetrics(serviceId: number): Promise<ContainerMetrics> {
   const response = await client.get(`/services/${serviceId}/metrics`);
-  return response.data;
+  return response.data.metrics ?? response.data;
 }
 
 export async function listAlertRules(): Promise<AlertRule[]> {
