@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db, McpService, DeployLog
 from app.deploy.runner import get_docker_client, stream_container_logs
+from app.auth.jwt import decode_token
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/services/{service_id}/logs", tags=["logs"])
@@ -14,6 +15,17 @@ router = APIRouter(prefix="/services/{service_id}/logs", tags=["logs"])
 @router.websocket("/stream")
 async def websocket_log_stream(websocket: WebSocket, service_id: int):
     """WebSocket endpoint for real-time log streaming."""
+    # JWT authentication before accepting the connection
+    token = websocket.query_params.get("token")
+    if not token:
+        await websocket.close(code=4001, reason="Missing token")
+        return
+
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "access":
+        await websocket.close(code=4003, reason="Invalid token")
+        return
+
     await websocket.accept()
 
     try:
@@ -66,10 +78,10 @@ async def _get_session():
 
 
 # Deploy logs (history)
-deploy_logs_router = APIRouter(prefix="/services/{service_id}/deploy-logs", tags=["deploy-logs"])
+deploy_logs_router = APIRouter(prefix="/services/{service_id}/deploy-logs", tags=["logs"])
 
 
-@deploy_logs_router.get("/")
+@deploy_logs_router.get("/", summary="部署历史", description="获取服务的部署操作历史记录")
 async def get_deploy_logs(
     service_id: int,
     db: AsyncSession = Depends(get_db),

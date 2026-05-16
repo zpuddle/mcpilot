@@ -1,5 +1,10 @@
 """Basic smoke tests for the backend modules."""
+import os
 import sys
+
+os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing")
+os.environ.setdefault("ADMIN_PASSWORD", "testadmin123")
+
 sys.path.insert(0, ".")
 
 def test_code_validator():

@@ -24,11 +24,10 @@ services:
     ports:
       - "8020:8020"
     environment:
-      DATABASE_URL: postgresql+asyncpg://mcpadmin:mcpadmin123@postgres:5432/mcpilot
-      SECRET_KEY: dev-secret-key-change-in-production
-      # DOCKER_HOST 留空，由 docker.from_env() 自动检测平台
-      # Windows Docker Desktop 使用 npipe:////./pipe/docker_engine
-      # Linux/macOS 使用 unix:///var/run/docker.sock
+      - SECRET_KEY=change-this-secret-key-in-production
+      - ADMIN_PASSWORD=admin123
+      - DATABASE_URL=postgresql+asyncpg://mcpadmin:mcpadmin123@postgres:5432/mcpilot
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
     volumes:
       - ./backend:/app
       # Docker socket 挂载：

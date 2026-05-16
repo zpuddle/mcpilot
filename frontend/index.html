@@ -5,6 +5,18 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>MCPilot</title>
+    <meta name="theme-color" content="#0f172a" />
+    <script>
+      // 零闪烁：在 DOM 渲染前设置主题
+      (function() {
+        var mode = localStorage.getItem('mcpilot_theme') || 'system';
+        var resolved = mode;
+        if (mode === 'system') {
+          resolved = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = resolved;
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

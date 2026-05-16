@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm } from 'antd';
+import { Table, Button, Space, Modal, Form, Input, Select, message, Popconfirm, Typography } from 'antd';
 import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -71,7 +71,7 @@ const ServiceList: React.FC = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>MCP Services</h2>
+        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>MCP Services</Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           New Service
         </Button>

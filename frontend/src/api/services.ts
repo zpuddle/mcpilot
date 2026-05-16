@@ -81,3 +81,58 @@ export async function removeContainer(id: number) {
   const res = await client.delete<ApiResponse>(`/services/${id}/container`);
   return res.data;
 }
+
+// Dependencies
+export interface ServiceDependency {
+  id: number;
+  service_id: number;
+  depends_on_id: number;
+  depends_on_name?: string;
+  dependency_type: string;
+  description: string | null;
+  created_at: string;
+}
+
+export async function getServiceDependencies(serviceId: number): Promise<ServiceDependency[]> {
+  const res = await client.get(`/services/${serviceId}/dependencies`);
+  return res.data;
+}
+
+export async function addServiceDependency(serviceId: number, data: {
+  depends_on_id: number;
+  dependency_type?: string;
+  description?: string;
+}): Promise<ServiceDependency> {
+  const res = await client.post(`/services/${serviceId}/dependencies`, data);
+  return res.data;
+}
+
+export async function removeServiceDependency(serviceId: number, depId: number): Promise<void> {
+  await client.delete(`/services/${serviceId}/dependencies/${depId}`);
+}
+
+// Dashboard
+export async function getDashboardStats() {
+  const res = await client.get<{ total: number; running: number; stopped: number; errors: number; building: number }>('/services/dashboard/stats');
+  return res.data;
+}
+
+// Multi-Instance
+export interface ServiceInstance {
+  id: number;
+  service_id: number;
+  instance_index: number;
+  container_id: string | null;
+  internal_port: number;
+  status: string;
+}
+
+export async function scaleService(serviceId: number, replicas: number): Promise<ApiResponse> {
+  const res = await client.put<ApiResponse>(`/services/${serviceId}/scale`, { replicas });
+  return res.data;
+}
+
+export async function getServiceInstances(serviceId: number): Promise<ServiceInstance[]> {
+  const res = await client.get<ServiceInstance[]>(`/services/${serviceId}/instances`);
+  return res.data;
+}

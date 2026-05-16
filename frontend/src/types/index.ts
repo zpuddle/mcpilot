@@ -26,6 +26,7 @@ export interface McpService {
   container_id: string | null;
   image_tag: string | null;
   current_version: number;
+  replicas: number;
   env_vars: Record<string, string>;
   extra_dependencies: string;
   created_at: string;

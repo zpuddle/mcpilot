@@ -27,7 +27,7 @@ async def _get_service_checked(service_id: int, user: User, db: AsyncSession) ->
 # ─── Tools ───────────────────────────────────────────────────────────────────
 
 
-@router.get("/tools", response_model=list[ToolResponse])
+@router.get("/tools", response_model=list[ToolResponse], summary="工具列表", description="获取服务下所有工具配置")
 async def list_tools(
     service_id: int,
     db: AsyncSession = Depends(get_db),
@@ -49,7 +49,7 @@ async def list_tools(
     ]
 
 
-@router.post("/tools", response_model=ToolResponse)
+@router.post("/tools", response_model=ToolResponse, summary="创建工具", description="为服务添加新的工具配置")
 async def create_tool(
     service_id: int, req: ToolCreate,
     db: AsyncSession = Depends(get_db),
@@ -78,7 +78,7 @@ async def create_tool(
     )
 
 
-@router.put("/tools/{tool_id}", response_model=ToolResponse)
+@router.put("/tools/{tool_id}", response_model=ToolResponse, summary="更新工具", description="更新指定工具的配置信息")
 async def update_tool(
     service_id: int, tool_id: int, req: ToolUpdate,
     db: AsyncSession = Depends(get_db),
@@ -117,7 +117,7 @@ async def update_tool(
     )
 
 
-@router.delete("/tools/{tool_id}", response_model=ApiResponse)
+@router.delete("/tools/{tool_id}", response_model=ApiResponse, summary="删除工具", description="删除指定的工具配置")
 async def delete_tool(
     service_id: int, tool_id: int,
     db: AsyncSession = Depends(get_db),
@@ -138,7 +138,7 @@ async def delete_tool(
 # ─── Resources ───────────────────────────────────────────────────────────────
 
 
-@router.get("/resources", response_model=list[ResourceResponse])
+@router.get("/resources", response_model=list[ResourceResponse], summary="资源列表", description="获取服务下所有资源配置")
 async def list_resources(
     service_id: int,
     db: AsyncSession = Depends(get_db),
@@ -159,7 +159,7 @@ async def list_resources(
     ]
 
 
-@router.post("/resources", response_model=ResourceResponse)
+@router.post("/resources", response_model=ResourceResponse, summary="创建资源", description="为服务添加新的资源配置")
 async def create_resource(
     service_id: int, req: ResourceCreate,
     db: AsyncSession = Depends(get_db),
@@ -186,7 +186,7 @@ async def create_resource(
     )
 
 
-@router.put("/resources/{resource_id}", response_model=ResourceResponse)
+@router.put("/resources/{resource_id}", response_model=ResourceResponse, summary="更新资源", description="更新指定资源的配置信息")
 async def update_resource(
     service_id: int, resource_id: int, req: ResourceUpdate,
     db: AsyncSession = Depends(get_db),
@@ -223,7 +223,7 @@ async def update_resource(
     )
 
 
-@router.delete("/resources/{resource_id}", response_model=ApiResponse)
+@router.delete("/resources/{resource_id}", response_model=ApiResponse, summary="删除资源", description="删除指定的资源配置")
 async def delete_resource(
     service_id: int, resource_id: int,
     db: AsyncSession = Depends(get_db),

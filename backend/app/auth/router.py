@@ -14,7 +14,7 @@ from app.common.responses import ApiResponse
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=TokenResponse, summary="用户登录", description="使用用户名密码登录，返回 access_token 和 refresh_token")
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     user = await authenticate_user(db, req.username, req.password)
     access_token = create_access_token({"sub": str(user.id)})
@@ -22,13 +22,13 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.post("/register", response_model=ApiResponse)
+@router.post("/register", response_model=ApiResponse, summary="用户注册", description="注册新用户账号")
 async def register(req: RegisterRequest, db: AsyncSession = Depends(get_db)):
     user = await create_user(db, req.username, req.email, req.password)
     return ApiResponse(message="User registered successfully", data={"id": user.id, "username": user.username})
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post("/refresh", response_model=TokenResponse, summary="刷新令牌", description="使用 refresh_token 获取新的 access_token")
 async def refresh_token(req: RefreshRequest, db: AsyncSession = Depends(get_db)):
     payload = decode_token(req.refresh_token)
     if payload is None or payload.get("type") != "refresh":
@@ -39,7 +39,7 @@ async def refresh_token(req: RefreshRequest, db: AsyncSession = Depends(get_db))
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 
-@router.get("/me", response_model=UserResponse)
+@router.get("/me", response_model=UserResponse, summary="获取当前用户", description="获取当前登录用户的信息")
 async def get_me(user: User = Depends(get_current_user)):
     return UserResponse(
         id=user.id,
@@ -51,7 +51,7 @@ async def get_me(user: User = Depends(get_current_user)):
     )
 
 
-@router.put("/me", response_model=ApiResponse)
+@router.put("/me", response_model=ApiResponse, summary="更新用户资料", description="更新当前用户的个人信息")
 async def update_me(req: UserUpdateRequest, user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     if req.email:
         user.email = req.email

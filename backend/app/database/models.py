@@ -89,13 +89,14 @@ class McpService(Base):
     container_id = Column(String(100), nullable=True)
     image_tag = Column(String(300), nullable=True)
     current_version = Column(Integer, default=0)
+    replicas = Column(Integer, default=1)
     env_vars = Column(JSON, default=dict)
     extra_dependencies = Column(Text, default="")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     owner = relationship("User", back_populates="services")
-    code = relationship("ServiceCode", back_populates="service", uselist=False)
+    code = relationship("ServiceCode", back_populates="service", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
     tools = relationship("ServiceTool", back_populates="service", cascade="all, delete-orphan")
     resources = relationship("ServiceResource", back_populates="service", cascade="all, delete-orphan")
     versions = relationship("ServiceVersion", back_populates="service", cascade="all, delete-orphan")
@@ -180,3 +181,107 @@ class DeployLog(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     service = relationship("McpService", back_populates="deploy_logs")
+
+
+# ─── Audit Logs ─────────────────────────────────────────────────────────────
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    username = Column(String(100), nullable=False)
+    action = Column(String(50), nullable=False)
+    resource_type = Column(String(50), nullable=False)
+    resource_id = Column(Integer, nullable=True)
+    resource_name = Column(String(200), nullable=True)
+    detail = Column(JSON, default=dict)
+    ip_address = Column(String(50), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+
+# ─── Service Templates ──────────────────────────────────────────────────────
+
+
+class ServiceTemplate(Base):
+    __tablename__ = "service_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    slug = Column(String(200), unique=True, nullable=False)
+    description = Column(Text, default="")
+    category = Column(String(100), default="general")
+    icon = Column(String(50), default="code")
+    code_template = Column(Text, nullable=False, default="")
+    tools_template = Column(JSON, default=list)
+    resources_template = Column(JSON, default=list)
+    env_vars_template = Column(JSON, default=dict)
+    dependencies = Column(Text, default="")
+    is_builtin = Column(Boolean, default=False)
+    author_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    usage_count = Column(Integer, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ─── Monitoring & Alerts ────────────────────────────────────────────────────
+
+
+class AlertRule(Base):
+    __tablename__ = "alert_rules"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(200), nullable=False)
+    service_id = Column(Integer, ForeignKey("mcp_services.id", ondelete="CASCADE"), nullable=True)
+    condition_type = Column(String(50), nullable=False)  # container_down/memory_high/cpu_high/restart_count
+    threshold = Column(String(50), nullable=True)
+    is_enabled = Column(Boolean, default=True)
+    notify_method = Column(String(50), default="log")  # log/webhook
+    webhook_url = Column(String(500), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+class AlertHistory(Base):
+    __tablename__ = "alert_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    rule_id = Column(Integer, ForeignKey("alert_rules.id", ondelete="SET NULL"), nullable=True)
+    service_id = Column(Integer, ForeignKey("mcp_services.id", ondelete="SET NULL"), nullable=True)
+    service_name = Column(String(200), nullable=True)
+    alert_type = Column(String(50), nullable=False)
+    message = Column(Text, nullable=False)
+    resolved = Column(Boolean, default=False)
+    resolved_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ─── Service Dependencies ───────────────────────────────────────────────────
+
+
+class ServiceDependency(Base):
+    __tablename__ = "service_dependencies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service_id = Column(Integer, ForeignKey("mcp_services.id", ondelete="CASCADE"), nullable=False)
+    depends_on_id = Column(Integer, ForeignKey("mcp_services.id", ondelete="CASCADE"), nullable=False)
+    dependency_type = Column(String(50), default="runtime")
+    description = Column(String(300), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
+# ─── Service Instances ──────────────────────────────────────────────────────
+
+
+class ServiceInstance(Base):
+    __tablename__ = "service_instances"
+
+    id = Column(Integer, primary_key=True, index=True)
+    service_id = Column(Integer, ForeignKey("mcp_services.id", ondelete="CASCADE"), nullable=False)
+    instance_index = Column(Integer, nullable=False)
+    container_id = Column(String(100), nullable=True)
+    internal_port = Column(Integer, nullable=False)
+    status = Column(String(20), default="stopped")
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    service = relationship("McpService", backref="instances")

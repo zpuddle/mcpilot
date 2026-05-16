@@ -1,8 +1,9 @@
-import React from 'react';
-import { Button, Card, Timeline, Tag, Space, message, Popconfirm } from 'antd';
-import { RocketOutlined, HistoryOutlined } from '@ant-design/icons';
+import React, { useState } from 'react';
+import { Button, Card, Timeline, Tag, Space, message, Popconfirm, InputNumber, Table, Badge } from 'antd';
+import { RocketOutlined, HistoryOutlined, ClusterOutlined } from '@ant-design/icons';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { deployService } from '../../api/services';
+import { deployService, scaleService, getServiceInstances } from '../../api/services';
+import type { ServiceInstance } from '../../api/services';
 import { getDeployLogs, listVersions, createVersion, rollbackVersion } from '../../api/tools';
 import type { McpService, DeployLog, ServiceVersion } from '../../types';
 
@@ -13,6 +14,8 @@ interface Props {
 
 const DeployTab: React.FC<Props> = ({ serviceId, service }) => {
   const queryClient = useQueryClient();
+  const [replicas, setReplicas] = useState<number>(service.replicas || 1);
+  const [scaling, setScaling] = useState(false);
 
   const { data: deployLogs = [] } = useQuery({
     queryKey: ['deploy-logs', serviceId],
@@ -52,6 +55,62 @@ const DeployTab: React.FC<Props> = ({ serviceId, service }) => {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] });
     },
   });
+
+  // Multi-instance
+  const { data: instances = [] } = useQuery<ServiceInstance[]>({
+    queryKey: ['instances', serviceId],
+    queryFn: () => getServiceInstances(serviceId),
+    refetchInterval: 30000,
+  });
+
+  const handleScale = async () => {
+    setScaling(true);
+    try {
+      const res = await scaleService(serviceId, replicas);
+      message.success(res.message || 'Scaled successfully');
+      queryClient.invalidateQueries({ queryKey: ['service', serviceId] });
+      queryClient.invalidateQueries({ queryKey: ['instances', serviceId] });
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { detail?: string } } };
+      message.error(error.response?.data?.detail || 'Scale failed');
+    } finally {
+      setScaling(false);
+    }
+  };
+
+  const instanceColumns = [
+    {
+      title: '实例编号',
+      dataIndex: 'instance_index',
+      key: 'instance_index',
+      render: (val: number) => `#${val}`,
+    },
+    {
+      title: '容器ID',
+      dataIndex: 'container_id',
+      key: 'container_id',
+      render: (val: string | null) => val ? val.slice(0, 12) : '-',
+    },
+    {
+      title: '内部端口',
+      dataIndex: 'internal_port',
+      key: 'internal_port',
+    },
+    {
+      title: '状态',
+      dataIndex: 'status',
+      key: 'status',
+      render: (val: string) => {
+        const statusMap: Record<string, 'success' | 'error' | 'processing' | 'default'> = {
+          running: 'success',
+          exited: 'error',
+          stopped: 'default',
+          created: 'processing',
+        };
+        return <Badge status={statusMap[val] || 'default'} text={val} />;
+      },
+    },
+  ];
 
   const statusColor: Record<string, string> = {
     success: 'green', failed: 'red', running: 'blue', pending: 'default',
@@ -109,6 +168,28 @@ const DeployTab: React.FC<Props> = ({ serviceId, service }) => {
           )}
         </Card>
       </div>
+
+      <Card title="实例配置" style={{ marginTop: 16 }}>
+        <Space>
+          <ClusterOutlined />
+          <span>副本数：</span>
+          <InputNumber min={1} max={10} value={replicas} onChange={(val) => setReplicas(val || 1)} />
+          <Button type="primary" onClick={handleScale} loading={scaling}>
+            应用
+          </Button>
+        </Space>
+
+        {instances && instances.length > 1 && (
+          <Table
+            dataSource={instances}
+            columns={instanceColumns}
+            rowKey="id"
+            size="small"
+            pagination={false}
+            style={{ marginTop: 16 }}
+          />
+        )}
+      </Card>
     </div>
   );
 };

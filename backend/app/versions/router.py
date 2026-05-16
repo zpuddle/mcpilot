@@ -23,7 +23,7 @@ async def _get_service_checked(service_id: int, user: User, db: AsyncSession) ->
     return svc
 
 
-@router.get("/", response_model=list[VersionResponse])
+@router.get("/", response_model=list[VersionResponse], summary="版本列表", description="获取服务的所有版本快照")
 async def list_versions(
     service_id: int,
     db: AsyncSession = Depends(get_db),
@@ -45,7 +45,7 @@ async def list_versions(
     ]
 
 
-@router.post("/", response_model=VersionResponse)
+@router.post("/", response_model=VersionResponse, summary="创建版本", description="为服务创建新的版本快照")
 async def create_version(
     service_id: int, req: VersionCreate,
     db: AsyncSession = Depends(get_db),
@@ -89,7 +89,7 @@ async def create_version(
     )
 
 
-@router.get("/{version_id}", response_model=VersionDetailResponse)
+@router.get("/{version_id}", response_model=VersionDetailResponse, summary="版本详情", description="获取指定版本的详细信息，包含代码和配置快照")
 async def get_version_detail(
     service_id: int, version_id: int,
     db: AsyncSession = Depends(get_db),
@@ -112,7 +112,7 @@ async def get_version_detail(
     )
 
 
-@router.post("/{version_id}/rollback", response_model=ApiResponse)
+@router.post("/{version_id}/rollback", response_model=ApiResponse, summary="版本回滚", description="将服务代码和配置回滚到指定版本")
 async def rollback_to_version(
     service_id: int, version_id: int,
     db: AsyncSession = Depends(get_db),

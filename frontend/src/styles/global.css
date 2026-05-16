@@ -1,0 +1,99 @@
+/* === CSS Variables === */
+:root {
+  --mcpilot-bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+  --mcpilot-glass-bg: rgba(255, 255, 255, 0.85);
+  --mcpilot-glass-border: 1px solid rgba(255, 255, 255, 0.18);
+  --mcpilot-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
+  --mcpilot-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --mcpilot-transition: 300ms ease;
+  --mcpilot-text-primary: #0f172a;
+  --mcpilot-text-secondary: #64748b;
+  --mcpilot-sider-bg: #0f172a;
+}
+
+[data-theme='dark'] {
+  --mcpilot-bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --mcpilot-glass-bg: rgba(30, 41, 59, 0.85);
+  --mcpilot-glass-border: 1px solid rgba(255, 255, 255, 0.06);
+  --mcpilot-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
+  --mcpilot-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
+  --mcpilot-text-primary: #f1f5f9;
+  --mcpilot-text-secondary: #94a3b8;
+  --mcpilot-sider-bg: #020617;
+}
+
+/* === Base Reset === */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* === Transitions for theme switch === */
+body,
+.ant-layout,
+.ant-layout-sider,
+.ant-layout-header,
+.ant-layout-content,
+.ant-card,
+.ant-table,
+.ant-menu {
+  transition: background-color var(--mcpilot-transition), 
+              border-color var(--mcpilot-transition),
+              color var(--mcpilot-transition);
+}
+
+/* === Modern Scrollbar === */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* === GPU Accelerated Hover Effects === */
+.mcpilot-card-hover {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+  will-change: transform;
+}
+
+.mcpilot-card-hover:hover {
+  transform: translateY(-2px) scale(1.005);
+  box-shadow: var(--mcpilot-shadow-hover);
+}
+
+/* === Page Transition === */
+.mcpilot-page-enter {
+  opacity: 0;
+  transform: translateY(8px);
+}
+
+.mcpilot-page-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}

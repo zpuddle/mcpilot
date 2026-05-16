@@ -1,9 +1,12 @@
 import React, { useEffect } from 'react';
 import { RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { ConfigProvider } from 'antd';
+import { ConfigProvider, theme as antTheme } from 'antd';
 import router from './router';
 import { useAuthStore } from './store/authStore';
+import { useThemeStore } from './store/themeStore';
+import { lightTokens, darkTokens } from './theme';
+import ErrorBoundary from './components/ErrorBoundary';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -16,6 +19,9 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   const { isAuthenticated, loadUser } = useAuthStore();
+  const { resolved } = useThemeStore();
+  const isDark = resolved === 'dark';
+  const tokens = isDark ? darkTokens : lightTokens;
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -23,12 +29,41 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // 同步 data-theme 属性
+  useEffect(() => {
+    document.documentElement.dataset.theme = resolved;
+  }, [resolved]);
+
   return (
-    <QueryClientProvider client={queryClient}>
-      <ConfigProvider theme={{ token: { colorPrimary: '#1677ff' } }}>
-        <RouterProvider router={router} />
-      </ConfigProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <ConfigProvider
+          theme={{
+            algorithm: isDark ? antTheme.darkAlgorithm : antTheme.defaultAlgorithm,
+            token: {
+              colorPrimary: tokens.colorPrimary,
+              colorBgContainer: tokens.colorBgContainer,
+              colorBgLayout: tokens.colorBgLayout,
+              colorBgElevated: tokens.colorBgElevated,
+              borderRadius: tokens.borderRadius,
+              fontFamily: tokens.fontFamily,
+            },
+            components: {
+              Layout: {
+                siderBg: tokens.siderBg,
+                headerBg: tokens.headerBg,
+              },
+              Menu: {
+                darkItemBg: tokens.siderBg,
+                darkSubMenuItemBg: tokens.siderBg,
+              },
+            },
+          }}
+        >
+          <RouterProvider router={router} />
+        </ConfigProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

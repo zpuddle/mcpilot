@@ -1,11 +1,17 @@
+import os
 import logging
-from typing import Optional, Generator
+import tempfile
+from typing import Optional, Generator, List, Dict
 import docker
-from docker.errors import NotFound, APIError
+from docker.errors import NotFound, APIError, BuildError, ContainerError, ImageNotFound
+from jinja2 import Environment, FileSystemLoader
 
 from app.config import settings
+from app.common.exceptions import AppException
 
 logger = logging.getLogger(__name__)
+
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), "templates")
 
 
 def get_docker_client() -> docker.DockerClient:
@@ -46,10 +52,21 @@ def build_image(client: docker.DockerClient, build_dir: str, tag: str) -> Genera
             elif "error" in chunk:
                 error_msg = chunk["error"].strip()
                 yield f"ERROR: {error_msg}"
-                raise RuntimeError(f"Docker build failed: {error_msg}")
-    except APIError as e:
-        yield f"ERROR: Docker API error: {e}"
+                raise BuildError(error_msg, [])
+    except AppException:
         raise
+    except BuildError as e:
+        error_detail = f"Image build failed for {tag}: {str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=500)
+    except APIError as e:
+        error_detail = f"Docker API error during build of {tag}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error during image build for {tag}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
 
 def run_container(
@@ -73,20 +90,37 @@ def run_container(
 
     environment = env_vars or {}
 
-    container = client.containers.run(
-        image=image_tag,
-        name=container_name,
-        detach=True,
-        ports={f"{port}/tcp": port},
-        environment=environment,
-        network=settings.MCP_SERVICE_NETWORK,
-        mem_limit=settings.MCP_SERVICE_MEMORY_LIMIT,
-        nano_cpus=int(settings.MCP_SERVICE_CPU_LIMIT * 1e9),
-        restart_policy={"Name": "unless-stopped"},
-        cap_drop=["ALL"],
-        read_only=False,
-        tmpfs={"/tmp": "size=100m"},
-    )
+    try:
+        container = client.containers.run(
+            image=image_tag,
+            name=container_name,
+            detach=True,
+            ports={f"{port}/tcp": port},
+            environment=environment,
+            network=settings.MCP_SERVICE_NETWORK,
+            mem_limit=settings.MCP_SERVICE_MEMORY_LIMIT,
+            nano_cpus=int(settings.MCP_SERVICE_CPU_LIMIT * 1e9),
+            restart_policy={"Name": "unless-stopped"},
+            cap_drop=["ALL"],
+            read_only=False,
+            tmpfs={"/tmp": "size=100m"},
+        )
+    except ContainerError as e:
+        error_detail = f"Container {container_name} exited with error: {str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=500)
+    except ImageNotFound as e:
+        error_detail = f"Image not found for container {container_name}: {image_tag}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=404)
+    except APIError as e:
+        error_detail = f"Docker API error starting container {container_name}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error starting container {container_name}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
     logger.info(f"Started container {container_name} (ID: {container.short_id})")
     return container.id
@@ -100,6 +134,14 @@ def stop_container(client: docker.DockerClient, container_id: str):
         logger.info(f"Stopped container {container_id[:12]}")
     except NotFound:
         logger.warning(f"Container {container_id[:12]} not found")
+    except APIError as e:
+        error_detail = f"Docker API error stopping container {container_id[:12]}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error stopping container {container_id[:12]}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
 
 def start_container(client: docker.DockerClient, container_id: str):
@@ -109,7 +151,17 @@ def start_container(client: docker.DockerClient, container_id: str):
         container.start()
         logger.info(f"Started container {container_id[:12]}")
     except NotFound:
-        raise RuntimeError(f"Container {container_id[:12]} not found")
+        error_detail = f"Container {container_id[:12]} not found"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=404)
+    except APIError as e:
+        error_detail = f"Docker API error starting container {container_id[:12]}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error starting container {container_id[:12]}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
 
 def restart_container(client: docker.DockerClient, container_id: str):
@@ -119,7 +171,17 @@ def restart_container(client: docker.DockerClient, container_id: str):
         container.restart(timeout=10)
         logger.info(f"Restarted container {container_id[:12]}")
     except NotFound:
-        raise RuntimeError(f"Container {container_id[:12]} not found")
+        error_detail = f"Container {container_id[:12]} not found"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=404)
+    except APIError as e:
+        error_detail = f"Docker API error restarting container {container_id[:12]}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error restarting container {container_id[:12]}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
 
 def remove_container(client: docker.DockerClient, container_id: str):
@@ -131,6 +193,14 @@ def remove_container(client: docker.DockerClient, container_id: str):
         logger.info(f"Removed container {container_id[:12]}")
     except NotFound:
         pass
+    except APIError as e:
+        error_detail = f"Docker API error removing container {container_id[:12]}: {e.explanation or str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=503)
+    except Exception as e:
+        error_detail = f"Unexpected error removing container {container_id[:12]}: {str(e)}"
+        logger.error(error_detail, exc_info=True)
+        raise AppException(detail=error_detail, status_code=500)
 
 
 def get_container_status(client: docker.DockerClient, container_id: str) -> Optional[str]:
@@ -306,3 +376,238 @@ def cleanup_stopped_containers(client: docker.DockerClient) -> list:
             logger.warning(f"Failed to remove container {c.name}: {e}")
 
     return removed
+
+
+# ─── Multi-Instance Deployment ──────────────────────────────────────────────────
+
+
+def _remove_if_exists(client: docker.DockerClient, container_name: str):
+    """Remove a container by name if it exists."""
+    try:
+        existing = client.containers.get(container_name)
+        existing.stop(timeout=10)
+        existing.remove(force=True)
+        logger.info(f"Removed existing container: {container_name}")
+    except NotFound:
+        pass
+    except Exception as e:
+        logger.warning(f"Failed to remove container {container_name}: {e}")
+
+
+def _render_nginx_conf(instances: List[Dict], service_port: int) -> str:
+    """Render nginx load-balancer configuration from template."""
+    env = Environment(loader=FileSystemLoader(TEMPLATES_DIR))
+    template = env.get_template("nginx.conf.j2")
+    return template.render(instances=instances, service_port=service_port)
+
+
+def deploy_multi_instance(
+    client: docker.DockerClient,
+    service_slug: str,
+    replicas: int,
+    image_tag: str,
+    base_port: int,
+    service_port: int,
+    env_vars: Optional[dict] = None,
+) -> Dict:
+    """
+    Deploy multi-instance service:
+    1. Start N service containers (each with a different internal port)
+    2. Generate nginx.conf
+    3. Start nginx container as load balancer, exposing service_port
+    """
+    ensure_network(client, settings.MCP_SERVICE_NETWORK)
+    instances: List[Dict] = []
+
+    for i in range(replicas):
+        internal_port = base_port + i + 1
+        container_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-instance-{i}"
+
+        _remove_if_exists(client, container_name)
+
+        environment = dict(env_vars or {})
+        environment["PORT"] = str(internal_port)
+
+        try:
+            container = client.containers.run(
+                image=image_tag,
+                name=container_name,
+                detach=True,
+                network=settings.MCP_SERVICE_NETWORK,
+                environment=environment,
+                mem_limit=settings.MCP_SERVICE_MEMORY_LIMIT,
+                nano_cpus=int(settings.MCP_SERVICE_CPU_LIMIT * 1e9),
+                cap_drop=["ALL"],
+                restart_policy={"Name": "unless-stopped"},
+                labels={settings.MCP_LABEL_KEY: settings.MCP_LABEL_VALUE},
+            )
+        except Exception as e:
+            error_detail = f"Failed to start instance {i} for {service_slug}: {str(e)}"
+            logger.error(error_detail)
+            raise AppException(detail=error_detail, status_code=500)
+
+        instances.append({
+            "container_name": container_name,
+            "container_id": container.id,
+            "port": internal_port,
+            "index": i,
+        })
+
+    # Generate nginx config
+    nginx_conf = _render_nginx_conf(instances, 80)
+
+    # Start nginx LB container
+    nginx_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-lb"
+    _remove_if_exists(client, nginx_name)
+
+    conf_dir = tempfile.mkdtemp()
+    conf_path = os.path.join(conf_dir, "default.conf")
+    with open(conf_path, "w") as f:
+        f.write(nginx_conf)
+
+    try:
+        nginx_container = client.containers.run(
+            image="nginx:alpine",
+            name=nginx_name,
+            detach=True,
+            network=settings.MCP_SERVICE_NETWORK,
+            ports={"80/tcp": service_port},
+            volumes={conf_path: {"bind": "/etc/nginx/conf.d/default.conf", "mode": "ro"}},
+            labels={settings.MCP_LABEL_KEY: settings.MCP_LABEL_VALUE},
+            restart_policy={"Name": "unless-stopped"},
+        )
+    except Exception as e:
+        error_detail = f"Failed to start nginx LB for {service_slug}: {str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=500)
+
+    return {
+        "instances": instances,
+        "lb_container_id": nginx_container.id,
+    }
+
+
+def scale_instances(
+    client: docker.DockerClient,
+    service_slug: str,
+    current_replicas: int,
+    target_replicas: int,
+    image_tag: str,
+    base_port: int,
+    service_port: int,
+    env_vars: Optional[dict] = None,
+) -> Dict:
+    """
+    Scale service instances up or down.
+    - Increase: start new containers
+    - Decrease: stop excess containers
+    - Update nginx config
+    """
+    ensure_network(client, settings.MCP_SERVICE_NETWORK)
+    instances: List[Dict] = []
+
+    # Stop excess containers if scaling down
+    if target_replicas < current_replicas:
+        for i in range(target_replicas, current_replicas):
+            container_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-instance-{i}"
+            _remove_if_exists(client, container_name)
+
+    # Ensure all target instances are running
+    for i in range(target_replicas):
+        internal_port = base_port + i + 1
+        container_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-instance-{i}"
+
+        # Check if already running
+        try:
+            existing = client.containers.get(container_name)
+            if existing.status == "running":
+                instances.append({
+                    "container_name": container_name,
+                    "container_id": existing.id,
+                    "port": internal_port,
+                    "index": i,
+                })
+                continue
+            else:
+                existing.remove(force=True)
+        except NotFound:
+            pass
+
+        # Start new instance
+        environment = dict(env_vars or {})
+        environment["PORT"] = str(internal_port)
+
+        try:
+            container = client.containers.run(
+                image=image_tag,
+                name=container_name,
+                detach=True,
+                network=settings.MCP_SERVICE_NETWORK,
+                environment=environment,
+                mem_limit=settings.MCP_SERVICE_MEMORY_LIMIT,
+                nano_cpus=int(settings.MCP_SERVICE_CPU_LIMIT * 1e9),
+                cap_drop=["ALL"],
+                restart_policy={"Name": "unless-stopped"},
+                labels={settings.MCP_LABEL_KEY: settings.MCP_LABEL_VALUE},
+            )
+        except Exception as e:
+            error_detail = f"Failed to start instance {i} for {service_slug}: {str(e)}"
+            logger.error(error_detail)
+            raise AppException(detail=error_detail, status_code=500)
+
+        instances.append({
+            "container_name": container_name,
+            "container_id": container.id,
+            "port": internal_port,
+            "index": i,
+        })
+
+    # Update nginx config
+    nginx_conf = _render_nginx_conf(instances, 80)
+    nginx_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-lb"
+    _remove_if_exists(client, nginx_name)
+
+    conf_dir = tempfile.mkdtemp()
+    conf_path = os.path.join(conf_dir, "default.conf")
+    with open(conf_path, "w") as f:
+        f.write(nginx_conf)
+
+    try:
+        nginx_container = client.containers.run(
+            image="nginx:alpine",
+            name=nginx_name,
+            detach=True,
+            network=settings.MCP_SERVICE_NETWORK,
+            ports={"80/tcp": service_port},
+            volumes={conf_path: {"bind": "/etc/nginx/conf.d/default.conf", "mode": "ro"}},
+            labels={settings.MCP_LABEL_KEY: settings.MCP_LABEL_VALUE},
+            restart_policy={"Name": "unless-stopped"},
+        )
+    except Exception as e:
+        error_detail = f"Failed to start nginx LB for {service_slug}: {str(e)}"
+        logger.error(error_detail)
+        raise AppException(detail=error_detail, status_code=500)
+
+    return {
+        "instances": instances,
+        "lb_container_id": nginx_container.id,
+    }
+
+
+def stop_multi_instance(client: docker.DockerClient, service_slug: str, replicas: int):
+    """Stop all instance containers and LB for a multi-instance service."""
+    for i in range(replicas):
+        container_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-instance-{i}"
+        _remove_if_exists(client, container_name)
+
+    nginx_name = f"{settings.MCP_RESOURCE_PREFIX}{service_slug}-lb"
+    _remove_if_exists(client, nginx_name)
+
+
+def get_instance_status(client: docker.DockerClient, container_id: str) -> Optional[str]:
+    """Get the status of an instance container. Returns None if not found."""
+    try:
+        container = client.containers.get(container_id)
+        return container.status
+    except NotFound:
+        return None

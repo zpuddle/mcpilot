@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://mcpadmin:mcpadmin123@localhost:5432/mcpilot"
 
     # JWT
-    SECRET_KEY: str = "change-this-in-production"
+    SECRET_KEY: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     REFRESH_TOKEN_EXPIRE_DAYS: int = 7
     ALGORITHM: str = "HS256"
@@ -31,10 +31,13 @@ class Settings(BaseSettings):
     MCP_LABEL_KEY: str = "managed-by"
     MCP_LABEL_VALUE: str = "mcpilot"
 
+    # CORS
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
     # First admin
     ADMIN_USERNAME: str = "admin"
     ADMIN_EMAIL: str = "admin@example.com"
-    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_PASSWORD: str
 
     class Config:
         env_file = ".env"
