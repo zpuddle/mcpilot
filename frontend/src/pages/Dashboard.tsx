@@ -1,5 +1,5 @@
 import React from 'react';
-import { Card, Col, Row, Statistic, Typography, theme } from 'antd';
+import { Card, Col, Row, Statistic, Typography } from 'antd';
 import { CloudServerOutlined, CheckCircleOutlined, PauseCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardStats } from '../api/services';
