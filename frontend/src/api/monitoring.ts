@@ -42,7 +42,7 @@ export async function getServiceMetrics(serviceId: number): Promise<ContainerMet
 
 export async function listAlertRules(): Promise<AlertRule[]> {
   const response = await client.get('/alert-rules');
-  return response.data;
+  return response.data.rules ?? [];
 }
 
 export async function createAlertRule(data: Partial<AlertRule>): Promise<AlertRule> {
@@ -64,7 +64,7 @@ export async function listAlerts(params?: { page?: number; size?: number }): Pro
   data: AlertHistoryItem[];
 }> {
   const response = await client.get('/alerts', { params });
-  return response.data;
+  return { data: response.data.alerts ?? [], total: response.data.total ?? 0 };
 }
 
 export async function resolveAlert(id: number): Promise<void> {
