@@ -63,9 +63,7 @@ const Dashboard: React.FC = () => {
               <Statistic
                 title={<span style={{ color: 'var(--mcpilot-text-secondary)', fontSize: 13 }}>{card.title}</span>}
                 value={(stats as Record<string, number>)?.[card.key] || 0}
-                prefix={React.cloneElement(card.icon as React.ReactElement, {
-                  style: { color: card.iconColor, fontSize: 20, marginRight: 4 },
-                })}
+                prefix={<span style={{ color: card.iconColor, fontSize: 20, marginRight: 4, display: 'inline-flex' }}>{card.icon}</span>}
                 valueStyle={{ fontWeight: 700, fontSize: 28 }}
               />
             </Card>
