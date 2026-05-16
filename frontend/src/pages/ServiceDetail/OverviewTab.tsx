@@ -126,7 +126,13 @@ const OverviewTab: React.FC<Props> = ({ service }) => {
       </Space>
 
       {/* Basic Info */}
-      <Descriptions bordered column={2}>
+      <Descriptions
+        bordered
+        column={2}
+        style={{ marginBottom: 24 }}
+        labelStyle={{ color: 'var(--mcpilot-text-secondary)', fontWeight: 500 }}
+        contentStyle={{ color: 'var(--mcpilot-text-primary)' }}
+      >
         <Descriptions.Item label="Name">{service.name}</Descriptions.Item>
         <Descriptions.Item label="Slug">{service.slug}</Descriptions.Item>
         <Descriptions.Item label="Status"><StatusBadge status={service.status} /></Descriptions.Item>
@@ -143,7 +149,8 @@ const OverviewTab: React.FC<Props> = ({ service }) => {
       {/* ========== Metrics Section ========== */}
       <Card
         title="运行指标"
-        style={{ marginTop: 24 }}
+        className="mcpilot-glass-card"
+        style={{ marginTop: 24, border: '1px solid var(--mcpilot-card-border)' }}
         extra={isRunning ? <Text type="secondary">每 15 秒自动刷新</Text> : null}
       >
         {isRunning && metrics ? (
@@ -208,7 +215,8 @@ const OverviewTab: React.FC<Props> = ({ service }) => {
       {/* ========== Dependencies Section ========== */}
       <Card
         title="服务依赖"
-        style={{ marginTop: 24 }}
+        className="mcpilot-glass-card"
+        style={{ marginTop: 24, border: '1px solid var(--mcpilot-card-border)' }}
         extra={
           <Button
             type="primary"

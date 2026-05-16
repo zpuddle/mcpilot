@@ -25,7 +25,6 @@ const ServiceDetail: React.FC = () => {
   if (isLoading) return <Spin size="large" />;
   if (!service) return <div>Service not found</div>;
 
-  // Determine active tab from URL
   const pathParts = location.pathname.split('/');
   const activeTab = pathParts[pathParts.length - 1] || 'overview';
 
@@ -40,7 +39,16 @@ const ServiceDetail: React.FC = () => {
 
   return (
     <div>
-      <h2>{service.name}</h2>
+      <h2
+        style={{
+          color: 'var(--mcpilot-text-primary)',
+          fontWeight: 600,
+          fontFamily: '"Inter", sans-serif',
+          marginBottom: 16,
+        }}
+      >
+        {service.name}
+      </h2>
       <Tabs
         activeKey={activeTab}
         onChange={(key) => navigate(`/services/${serviceId}/${key}`)}

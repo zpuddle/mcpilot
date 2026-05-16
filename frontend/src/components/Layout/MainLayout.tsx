@@ -29,7 +29,7 @@ const MainLayout: React.FC = () => {
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
     { key: '/services', icon: <CloudServerOutlined />, label: 'MCP Services' },
-    { key: '/templates', icon: <AppstoreOutlined />, label: '模板市场' },
+    { key: '/templates', icon: <AppstoreOutlined />, label: 'Templates' },
     ...(user?.role_name === 'admin'
       ? [
           { key: '/admin/users', icon: <TeamOutlined />, label: 'Users' },
@@ -57,14 +57,26 @@ const MainLayout: React.FC = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: 'var(--mcpilot-bg-gradient)' }}>
+      {/* Decorative Background Orbs */}
+      <div className="mcpilot-deco-orb mcpilot-deco-orb-1" style={{ top: -100, right: 300 }} />
+      <div className="mcpilot-deco-orb mcpilot-deco-orb-2" style={{ bottom: 100, left: 200 }} />
+      <div className="mcpilot-deco-orb mcpilot-deco-orb-3" style={{ top: 350, right: 100 }} />
+
       <Sider
-        theme="dark"
+        theme="light"
         breakpoint="lg"
         collapsedWidth={64}
+        width={260}
+        className="mcpilot-sidebar"
         style={{
-          background: 'var(--mcpilot-sider-bg, #0f172a)',
-          borderRight: '1px solid rgba(255, 255, 255, 0.06)',
+          background: 'var(--mcpilot-sider-bg)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
+          borderRight: '1px solid var(--mcpilot-sider-border)',
+          boxShadow: 'var(--mcpilot-sidebar-shadow)',
+          position: 'relative',
+          zIndex: 10,
         }}
       >
         <div
@@ -72,74 +84,185 @@ const MainLayout: React.FC = () => {
             height: 64,
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            background: 'linear-gradient(180deg, rgba(37, 99, 235, 0.15) 0%, transparent 100%)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
+            gap: 12,
+            padding: '0 20px',
+            borderBottom: '1px solid var(--mcpilot-sider-border)',
           }}
         >
-          <h2 style={{ color: '#fff', margin: 0, fontSize: 18, fontWeight: 700, letterSpacing: '-0.02em' }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: 'var(--mcpilot-accent-gradient)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#fff',
+              fontWeight: 700,
+              fontSize: 14,
+              flexShrink: 0,
+            }}
+          >
+            M
+          </div>
+          <span
+            style={{
+              color: 'var(--mcpilot-text-primary)',
+              fontSize: 18,
+              fontWeight: 700,
+              fontFamily: '"Inter", sans-serif',
+              letterSpacing: '-0.02em',
+            }}
+          >
             MCPilot
-          </h2>
+          </span>
         </div>
         <Menu
-          theme="dark"
+          theme="light"
           mode="inline"
           selectedKeys={[location.pathname]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{ background: 'transparent', borderInlineEnd: 'none' }}
+          style={{
+            background: 'transparent',
+            borderInlineEnd: 'none',
+            padding: '16px 12px',
+          }}
         />
+        {/* Sidebar Footer - User Info */}
+        <div
+          style={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            padding: '16px 12px',
+            borderTop: '1px solid var(--mcpilot-sider-border)',
+          }}
+        >
+          <Dropdown menu={userMenu} placement="topRight">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 12,
+                padding: '6px 12px',
+                borderRadius: 8,
+                cursor: 'pointer',
+                transition: 'background 200ms ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'var(--mcpilot-accent-light)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <Avatar
+                icon={<UserOutlined />}
+                size={32}
+                style={{
+                  backgroundColor: 'var(--mcpilot-accent)',
+                  flexShrink: 0,
+                }}
+              />
+              <div style={{ overflow: 'hidden' }}>
+                <div
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--mcpilot-text-primary)',
+                    lineHeight: 1.2,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {user?.username}
+                </div>
+                <div
+                  style={{
+                    fontSize: 11,
+                    color: 'var(--mcpilot-text-secondary)',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {user?.role_name}
+                </div>
+              </div>
+            </div>
+          </Dropdown>
+        </div>
       </Sider>
-      <Layout>
+      <Layout style={{ background: 'transparent' }}>
         <Header
           style={{
             padding: '0 24px',
             display: 'flex',
-            justifyContent: 'flex-end',
+            justifyContent: 'space-between',
             alignItems: 'center',
-            gap: 16,
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backdropFilter: 'blur(16px)',
+            WebkitBackdropFilter: 'blur(16px)',
             background: 'var(--mcpilot-glass-bg)',
-            borderBottom: 'var(--mcpilot-glass-border)',
+            borderBottom: '1px solid var(--mcpilot-sider-border)',
             position: 'sticky',
             top: 0,
             zIndex: 100,
+            height: 64,
+            lineHeight: '64px',
           }}
         >
-          <Segmented
-            size="small"
-            value={mode}
-            onChange={(v) => setMode(v as 'light' | 'dark' | 'system')}
-            options={[
-              { value: 'light', icon: <SunOutlined /> },
-              { value: 'dark', icon: <MoonOutlined /> },
-              { value: 'system', icon: <DesktopOutlined /> },
-            ]}
-          />
-          <Dropdown menu={userMenu} placement="bottomRight">
-            <Button
-              type="text"
-              style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <span
+              style={{
+                fontSize: 18,
+                fontWeight: 600,
+                color: 'var(--mcpilot-text-primary)',
+                fontFamily: '"Inter", sans-serif',
+              }}
             >
-              <Avatar
-                icon={<UserOutlined />}
-                size="small"
-                style={{ backgroundColor: token.colorPrimary }}
-              />
-              <span>{user?.username}</span>
-            </Button>
-          </Dropdown>
+              {menuItems.find((item) => location.pathname.startsWith(item.key))?.label || 'MCPilot'}
+            </span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Segmented
+              size="small"
+              value={mode}
+              onChange={(v) => setMode(v as 'light' | 'dark' | 'system')}
+              options={[
+                { value: 'light', icon: <SunOutlined /> },
+                { value: 'dark', icon: <MoonOutlined /> },
+                { value: 'system', icon: <DesktopOutlined /> },
+              ]}
+            />
+            <Dropdown menu={userMenu} placement="bottomRight">
+              <Button
+                type="text"
+                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+              >
+                <Avatar
+                  icon={<UserOutlined />}
+                  size="small"
+                  style={{ backgroundColor: 'var(--mcpilot-accent)' }}
+                />
+                <span style={{ color: 'var(--mcpilot-text-primary)' }}>{user?.username}</span>
+              </Button>
+            </Dropdown>
+          </div>
         </Header>
         <Content
           style={{
             margin: 24,
             padding: 24,
-            background: token.colorBgContainer,
-            borderRadius: token.borderRadius,
+            background: 'var(--mcpilot-glass-bg-card)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+            borderRadius: 'var(--mcpilot-border-radius)',
+            border: 'var(--mcpilot-card-border)',
             boxShadow: 'var(--mcpilot-shadow)',
             minHeight: 360,
-            transition: 'background-color var(--mcpilot-transition), box-shadow var(--mcpilot-transition)',
+            transition: 'background-color var(--mcpilot-transition), box-shadow var(--mcpilot-transition), border-color var(--mcpilot-transition)',
           }}
         >
           <Outlet />

@@ -1,25 +1,57 @@
 /* === CSS Variables === */
 :root {
-  --mcpilot-bg-gradient: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
-  --mcpilot-glass-bg: rgba(255, 255, 255, 0.85);
-  --mcpilot-glass-border: 1px solid rgba(255, 255, 255, 0.18);
-  --mcpilot-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.04);
-  --mcpilot-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --mcpilot-bg-gradient: #F8FAFC;
+  --mcpilot-glass-bg: rgba(255, 255, 255, 0.90);
+  --mcpilot-glass-bg-card: rgba(255, 255, 255, 0.90);
+  --mcpilot-glass-border: 1px solid #E2E8F0;
+  --mcpilot-glass-blur: 20px;
+  --mcpilot-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+  --mcpilot-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.08);
+  --mcpilot-sidebar-shadow: 4px 0 20px rgba(14, 165, 233, 0.06);
   --mcpilot-transition: 300ms ease;
-  --mcpilot-text-primary: #0f172a;
-  --mcpilot-text-secondary: #64748b;
-  --mcpilot-sider-bg: #0f172a;
+  --mcpilot-text-primary: #0F172A;
+  --mcpilot-text-secondary: #64748B;
+  --mcpilot-text-section: #94A3B8;
+  --mcpilot-sider-bg: rgba(255, 255, 255, 0.80);
+  --mcpilot-sider-border: #E2E8F0;
+  --mcpilot-accent: #0EA5E9;
+  --mcpilot-accent-gradient: linear-gradient(135deg, #0EA5E9, #06B6D4, #0284C7);
+  --mcpilot-accent-light: rgba(14, 165, 233, 0.06);
+  --mcpilot-deco-1: rgba(14, 165, 233, 0.06);
+  --mcpilot-deco-2: rgba(6, 182, 212, 0.05);
+  --mcpilot-deco-3: rgba(14, 165, 233, 0.04);
+  --mcpilot-nav-active-bg: rgba(14, 165, 233, 0.06);
+  --mcpilot-nav-active-text: #0EA5E9;
+  --mcpilot-nav-inactive-text: #64748B;
+  --mcpilot-border-radius: 12px;
+  --mcpilot-card-border: 1px solid #E2E8F0;
 }
 
 [data-theme='dark'] {
-  --mcpilot-bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --mcpilot-bg-gradient: #0F172A;
   --mcpilot-glass-bg: rgba(30, 41, 59, 0.85);
+  --mcpilot-glass-bg-card: rgba(30, 41, 59, 0.85);
   --mcpilot-glass-border: 1px solid rgba(255, 255, 255, 0.06);
-  --mcpilot-shadow: 0 1px 3px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.15);
-  --mcpilot-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.2);
-  --mcpilot-text-primary: #f1f5f9;
-  --mcpilot-text-secondary: #94a3b8;
-  --mcpilot-sider-bg: #020617;
+  --mcpilot-glass-blur: 20px;
+  --mcpilot-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
+  --mcpilot-shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --mcpilot-sidebar-shadow: 4px 0 20px rgba(14, 165, 233, 0.08);
+  --mcpilot-text-primary: #F1F5F9;
+  --mcpilot-text-secondary: #94A3B8;
+  --mcpilot-text-section: #64748B;
+  --mcpilot-sider-bg: rgba(15, 23, 42, 0.85);
+  --mcpilot-sider-border: rgba(255, 255, 255, 0.06);
+  --mcpilot-accent: #38BDF8;
+  --mcpilot-accent-gradient: linear-gradient(135deg, #0EA5E9, #06B6D4, #0284C7);
+  --mcpilot-accent-light: rgba(56, 189, 248, 0.08);
+  --mcpilot-deco-1: rgba(14, 165, 233, 0.08);
+  --mcpilot-deco-2: rgba(6, 182, 212, 0.06);
+  --mcpilot-deco-3: rgba(14, 165, 233, 0.05);
+  --mcpilot-nav-active-bg: rgba(56, 189, 248, 0.10);
+  --mcpilot-nav-active-text: #38BDF8;
+  --mcpilot-nav-inactive-text: #94A3B8;
+  --mcpilot-border-radius: 12px;
+  --mcpilot-card-border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 /* === Base Reset === */
@@ -43,7 +75,7 @@ body,
 .ant-card,
 .ant-table,
 .ant-menu {
-  transition: background-color var(--mcpilot-transition), 
+  transition: background-color var(--mcpilot-transition),
               border-color var(--mcpilot-transition),
               color var(--mcpilot-transition);
 }
@@ -96,4 +128,111 @@ body,
   opacity: 1;
   transform: translateY(0);
   transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+
+/* === Glass Card === */
+.mcpilot-glass-card {
+  background: var(--mcpilot-glass-bg-card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: var(--mcpilot-card-border);
+  border-radius: var(--mcpilot-border-radius);
+  box-shadow: var(--mcpilot-shadow);
+  transition: background var(--mcpilot-transition),
+              border-color var(--mcpilot-transition),
+              box-shadow var(--mcpilot-transition);
+}
+
+/* === Decorative Background Orbs === */
+.mcpilot-deco-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.mcpilot-deco-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.mcpilot-deco-orb-1 {
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, var(--mcpilot-deco-1), transparent);
+}
+
+.mcpilot-deco-orb-2 {
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, var(--mcpilot-deco-2), transparent);
+}
+
+.mcpilot-deco-orb-3 {
+  width: 350px;
+  height: 350px;
+  background: radial-gradient(circle, var(--mcpilot-deco-3), transparent);
+}
+
+/* === Sidebar Navigation Overrides === */
+.mcpilot-sidebar .ant-menu {
+  background: transparent !important;
+  border-inline-end: none !important;
+}
+
+.mcpilot-sidebar .ant-menu-item {
+  border-radius: 8px !important;
+  margin: 2px 0 !important;
+  color: var(--mcpilot-nav-inactive-text) !important;
+  height: 40px !important;
+  line-height: 40px !important;
+}
+
+.mcpilot-sidebar .ant-menu-item-selected {
+  background: var(--mcpilot-nav-active-bg) !important;
+  color: var(--mcpilot-nav-active-text) !important;
+}
+
+.mcpilot-sidebar .ant-menu-item-selected .anticon {
+  color: var(--mcpilot-nav-active-text) !important;
+}
+
+.mcpilot-sidebar .ant-menu-item:hover:not(.ant-menu-item-selected) {
+  background: var(--mcpilot-accent-light) !important;
+}
+
+.mcpilot-sidebar .ant-menu-item .anticon {
+  color: var(--mcpilot-nav-inactive-text) !important;
+  font-size: 18px !important;
+}
+
+.mcpilot-sidebar .ant-menu-item-selected .anticon {
+  color: var(--mcpilot-nav-active-text) !important;
+}
+
+/* === Ant Design Overrides for V2 === */
+.ant-card {
+  border-radius: var(--mcpilot-border-radius) !important;
+}
+
+.ant-table {
+  border-radius: var(--mcpilot-border-radius) !important;
+  overflow: hidden;
+}
+
+.ant-btn-primary {
+  background: var(--mcpilot-accent-gradient) !important;
+  border: none !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.2) !important;
+}
+
+.ant-btn-primary:hover {
+  opacity: 0.9;
+}
+
+.ant-segmented {
+  border-radius: 8px !important;
+}
+
+.ant-tabs .ant-tabs-tab {
+  transition: color 200ms ease;
 }

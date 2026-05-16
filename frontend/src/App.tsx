@@ -47,6 +47,8 @@ const App: React.FC = () => {
               colorBgElevated: tokens.colorBgElevated,
               borderRadius: tokens.borderRadius,
               fontFamily: tokens.fontFamily,
+              colorText: isDark ? '#F1F5F9' : '#0F172A',
+              colorTextSecondary: isDark ? '#94A3B8' : '#64748B',
             },
             components: {
               Layout: {
@@ -54,8 +56,16 @@ const App: React.FC = () => {
                 headerBg: tokens.headerBg,
               },
               Menu: {
-                darkItemBg: tokens.siderBg,
-                darkSubMenuItemBg: tokens.siderBg,
+                itemBg: 'transparent',
+                subMenuItemBg: 'transparent',
+                itemColor: isDark ? '#94A3B8' : '#64748B',
+                itemSelectedColor: tokens.colorPrimary,
+                itemSelectedBg: isDark ? 'rgba(56, 189, 248, 0.10)' : 'rgba(14, 165, 233, 0.06)',
+                itemHoverColor: tokens.colorPrimary,
+                itemHoverBg: isDark ? 'rgba(56, 189, 248, 0.06)' : 'rgba(14, 165, 233, 0.04)',
+                itemBorderRadius: 8,
+                itemHeight: 40,
+                iconSize: 18,
               },
             },
           }}

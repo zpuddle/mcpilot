@@ -11,29 +11,29 @@ const statCards = [
     key: 'total',
     title: 'Total Services',
     icon: <CloudServerOutlined />,
-    gradient: 'linear-gradient(135deg, #2563eb11, #2563eb05)',
-    iconColor: '#2563eb',
+    iconBg: 'rgba(14, 165, 233, 0.06)',
+    iconColor: '#0EA5E9',
   },
   {
     key: 'running',
     title: 'Running',
     icon: <CheckCircleOutlined />,
-    gradient: 'linear-gradient(135deg, #10b98111, #10b98105)',
-    iconColor: '#10b981',
+    iconBg: 'rgba(16, 185, 129, 0.06)',
+    iconColor: '#10B981',
   },
   {
     key: 'stopped',
     title: 'Stopped',
     icon: <PauseCircleOutlined />,
-    gradient: 'linear-gradient(135deg, #f59e0b11, #f59e0b05)',
-    iconColor: '#f59e0b',
+    iconBg: 'rgba(245, 158, 11, 0.06)',
+    iconColor: '#F59E0B',
   },
   {
     key: 'errors',
     title: 'Errors',
     icon: <WarningOutlined />,
-    gradient: 'linear-gradient(135deg, #ef444411, #ef444405)',
-    iconColor: '#ef4444',
+    iconBg: 'rgba(239, 68, 68, 0.06)',
+    iconColor: '#EF4444',
   },
 ];
 
@@ -46,26 +46,66 @@ const Dashboard: React.FC = () => {
 
   return (
     <div>
-      <Title level={4} style={{ marginBottom: 24, fontWeight: 600 }}>Dashboard</Title>
-      <Row gutter={[20, 20]}>
+      <Title
+        level={4}
+        style={{
+          marginBottom: 24,
+          fontWeight: 600,
+          color: 'var(--mcpilot-text-primary)',
+          fontFamily: '"Inter", sans-serif',
+        }}
+      >
+        Dashboard
+      </Title>
+      <Row gutter={[16, 16]}>
         {statCards.map((card) => (
           <Col xs={24} sm={12} lg={6} key={card.key}>
             <Card
-              className="mcpilot-card-hover"
+              className="mcpilot-glass-card mcpilot-card-hover"
               style={{
-                borderRadius: token.borderRadius,
-                background: card.gradient,
-                border: '1px solid transparent',
-                boxShadow: 'var(--mcpilot-shadow)',
+                borderRadius: 12,
+                border: '1px solid var(--mcpilot-card-border)',
               }}
-              styles={{ body: { padding: '24px' } }}
+              styles={{ body: { padding: '20px' } }}
             >
-              <Statistic
-                title={<span style={{ color: 'var(--mcpilot-text-secondary)', fontSize: 13 }}>{card.title}</span>}
-                value={(stats as Record<string, number>)?.[card.key] || 0}
-                prefix={<span style={{ color: card.iconColor, fontSize: 20, marginRight: 4, display: 'inline-flex' }}>{card.icon}</span>}
-                valueStyle={{ fontWeight: 700, fontSize: 28 }}
-              />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    background: card.iconBg,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span style={{ color: card.iconColor, fontSize: 20, display: 'inline-flex' }}>
+                    {card.icon}
+                  </span>
+                </div>
+                <div>
+                  <div
+                    style={{
+                      color: 'var(--mcpilot-text-secondary)',
+                      fontSize: 13,
+                      marginBottom: 4,
+                    }}
+                  >
+                    {card.title}
+                  </div>
+                  <Statistic
+                    value={(stats as Record<string, number>)?.[card.key] || 0}
+                    valueStyle={{
+                      fontWeight: 700,
+                      fontSize: 24,
+                      color: 'var(--mcpilot-text-primary)',
+                      fontFamily: '"Inter", sans-serif',
+                    }}
+                  />
+                </div>
+              </div>
             </Card>
           </Col>
         ))}

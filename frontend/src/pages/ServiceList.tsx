@@ -71,7 +71,17 @@ const ServiceList: React.FC = () => {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>MCP Services</Typography.Title>
+        <Typography.Title
+          level={4}
+          style={{
+            margin: 0,
+            fontWeight: 600,
+            color: 'var(--mcpilot-text-primary)',
+            fontFamily: '"Inter", sans-serif',
+          }}
+        >
+          MCP Services
+        </Typography.Title>
         <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
           New Service
         </Button>
@@ -83,6 +93,10 @@ const ServiceList: React.FC = () => {
         rowKey="id"
         loading={isLoading}
         pagination={{ total: data?.total, pageSize: 50 }}
+        style={{
+          borderRadius: 'var(--mcpilot-border-radius)',
+          overflow: 'hidden',
+        }}
       />
 
       <Modal

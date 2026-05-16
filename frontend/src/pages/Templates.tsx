@@ -8,11 +8,11 @@ import type { ServiceTemplate } from '../api/templates';
 
 const { Paragraph } = Typography;
 
-const categoryIcons: Record<string, React.ReactNode> = {
-  api: <ApiOutlined style={{ fontSize: 32, color: '#1890ff' }} />,
-  database: <DatabaseOutlined style={{ fontSize: 32, color: '#52c41a' }} />,
-  ai: <RobotOutlined style={{ fontSize: 32, color: '#722ed1' }} />,
-  tool: <ToolOutlined style={{ fontSize: 32, color: '#fa8c16' }} />,
+const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
+  api: { icon: <ApiOutlined style={{ fontSize: 28 }} />, color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.06)' },
+  database: { icon: <DatabaseOutlined style={{ fontSize: 28 }} />, color: '#10B981', bg: 'rgba(16, 185, 129, 0.06)' },
+  ai: { icon: <RobotOutlined style={{ fontSize: 28 }} />, color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.06)' },
+  tool: { icon: <ToolOutlined style={{ fontSize: 28 }} />, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.06)' },
 };
 
 const categoryOptions = [
@@ -67,14 +67,24 @@ const Templates: React.FC = () => {
     }
   };
 
-  const getIcon = (template: ServiceTemplate) => {
-    return categoryIcons[template.category] || <GlobalOutlined style={{ fontSize: 32, color: '#666' }} />;
+  const getIconConfig = (template: ServiceTemplate) => {
+    return categoryIcons[template.category] || { icon: <GlobalOutlined style={{ fontSize: 28 }} />, color: '#64748B', bg: 'rgba(100, 116, 139, 0.06)' };
   };
 
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>服务模板</Typography.Title>
+        <Typography.Title
+          level={4}
+          style={{
+            margin: 0,
+            fontWeight: 600,
+            color: 'var(--mcpilot-text-primary)',
+            fontFamily: '"Inter", sans-serif',
+          }}
+        >
+          服务模板
+        </Typography.Title>
         <Segmented
           options={categoryOptions}
           value={category}
@@ -83,44 +93,95 @@ const Templates: React.FC = () => {
       </div>
 
       <Row gutter={[16, 16]} style={{ opacity: isLoading ? 0.6 : 1 }}>
-        {templates.map((template) => (
-          <Col span={8} key={template.id}>
-            <Card
-              hoverable
-              className="mcpilot-card-hover"
-              style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
-              bodyStyle={{ flex: 1, display: 'flex', flexDirection: 'column' }}
-            >
-              <Space direction="vertical" style={{ width: '100%', flex: 1 }}>
-                <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                  {getIcon(template)}
-                </div>
-                <Typography.Title level={5} style={{ textAlign: 'center', margin: 0 }}>
-                  {template.name}
-                </Typography.Title>
-                <Paragraph
-                  type="secondary"
-                  ellipsis={{ rows: 2 }}
-                  style={{ textAlign: 'center', marginBottom: 0 }}
+        {templates.map((template) => {
+          const iconConfig = getIconConfig(template);
+          return (
+            <Col span={8} key={template.id}>
+              <Card
+                hoverable
+                className="mcpilot-glass-card mcpilot-card-hover"
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  border: '1px solid var(--mcpilot-card-border)',
+                }}
+                styles={{ body: { flex: 1, display: 'flex', flexDirection: 'column', padding: 24 } }}
+              >
+                <Space direction="vertical" style={{ width: '100%', flex: 1, alignItems: 'center' }}>
+                  <div
+                    style={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: 12,
+                      background: iconConfig.bg,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: iconConfig.color,
+                    }}
+                  >
+                    {React.cloneElement(iconConfig.icon as React.ReactElement, { style: { fontSize: 28, color: iconConfig.color } })}
+                  </div>
+                  <Typography.Title
+                    level={5}
+                    style={{
+                      textAlign: 'center',
+                      margin: 0,
+                      color: 'var(--mcpilot-text-primary)',
+                      fontWeight: 600,
+                    }}
+                  >
+                    {template.name}
+                  </Typography.Title>
+                  <Paragraph
+                    type="secondary"
+                    ellipsis={{ rows: 2 }}
+                    style={{
+                      textAlign: 'center',
+                      marginBottom: 0,
+                      color: 'var(--mcpilot-text-secondary)',
+                    }}
+                  >
+                    {template.description}
+                  </Paragraph>
+                </Space>
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    marginTop: 16,
+                    paddingTop: 16,
+                    borderTop: '1px solid var(--mcpilot-card-border)',
+                  }}
                 >
-                  {template.description}
-                </Paragraph>
-              </Space>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 }}>
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  已使用 {template.usage_count} 次
-                </Typography.Text>
-                <Button type="primary" size="small" onClick={() => handleUseTemplate(template)}>
-                  使用此模板
-                </Button>
-              </div>
-            </Card>
-          </Col>
-        ))}
+                  <Typography.Text
+                    style={{
+                      fontSize: 12,
+                      color: 'var(--mcpilot-text-secondary)',
+                    }}
+                  >
+                    已使用 {template.usage_count} 次
+                  </Typography.Text>
+                  <Button type="primary" size="small" onClick={() => handleUseTemplate(template)}>
+                    使用此模板
+                  </Button>
+                </div>
+              </Card>
+            </Col>
+          );
+        })}
       </Row>
 
       {!isLoading && templates.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--mcpilot-text-secondary)' }}>
+        <div
+          style={{
+            textAlign: 'center',
+            padding: '60px 0',
+            color: 'var(--mcpilot-text-secondary)',
+          }}
+        >
           暂无模板
         </div>
       )}
