@@ -1,5 +1,5 @@
 import React from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Segmented, theme } from 'antd';
+import { Layout, Menu, Button, Avatar, Dropdown, Segmented } from 'antd';
 import {
   DashboardOutlined,
   CloudServerOutlined,
@@ -24,7 +24,6 @@ const MainLayout: React.FC = () => {
   const location = useLocation();
   const { user, logout } = useAuthStore();
   const { mode, setMode } = useThemeStore();
-  const { token } = theme.useToken();
 
   const menuItems = [
     { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },

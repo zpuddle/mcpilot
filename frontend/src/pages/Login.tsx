@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, message, Typography, theme } from 'antd';
+import { Form, Input, Button, message, Typography } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { login } from '../api/auth';
@@ -11,7 +11,6 @@ const Login: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const authLogin = useAuthStore((s) => s.login);
-  const { token } = theme.useToken();
 
   const onFinish = async (values: { username: string; password: string }) => {
     setLoading(true);

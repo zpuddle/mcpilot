@@ -42,8 +42,6 @@ const Dashboard: React.FC = () => {
     queryKey: ['dashboard', 'stats'],
     queryFn: getDashboardStats,
   });
-  const { token } = theme.useToken();
-
   return (
     <div>
       <Title

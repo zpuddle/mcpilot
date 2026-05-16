@@ -9,10 +9,10 @@ import type { ServiceTemplate } from '../api/templates';
 const { Paragraph } = Typography;
 
 const categoryIcons: Record<string, { icon: React.ReactNode; color: string; bg: string }> = {
-  api: { icon: <ApiOutlined style={{ fontSize: 28 }} />, color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.06)' },
-  database: { icon: <DatabaseOutlined style={{ fontSize: 28 }} />, color: '#10B981', bg: 'rgba(16, 185, 129, 0.06)' },
-  ai: { icon: <RobotOutlined style={{ fontSize: 28 }} />, color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.06)' },
-  tool: { icon: <ToolOutlined style={{ fontSize: 28 }} />, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.06)' },
+  api: { icon: <ApiOutlined />, color: '#0EA5E9', bg: 'rgba(14, 165, 233, 0.06)' },
+  database: { icon: <DatabaseOutlined />, color: '#10B981', bg: 'rgba(16, 185, 129, 0.06)' },
+  ai: { icon: <RobotOutlined />, color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.06)' },
+  tool: { icon: <ToolOutlined />, color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.06)' },
 };
 
 const categoryOptions = [
@@ -68,7 +68,7 @@ const Templates: React.FC = () => {
   };
 
   const getIconConfig = (template: ServiceTemplate) => {
-    return categoryIcons[template.category] || { icon: <GlobalOutlined style={{ fontSize: 28 }} />, color: '#64748B', bg: 'rgba(100, 116, 139, 0.06)' };
+    return categoryIcons[template.category] || { icon: <GlobalOutlined />, color: '#64748B', bg: 'rgba(100, 116, 139, 0.06)' };
   };
 
   return (
@@ -121,7 +121,9 @@ const Templates: React.FC = () => {
                       color: iconConfig.color,
                     }}
                   >
-                    {React.cloneElement(iconConfig.icon as React.ReactElement, { style: { fontSize: 28, color: iconConfig.color } })}
+                    <span style={{ fontSize: 28, color: iconConfig.color, display: 'inline-flex' }}>
+                      {iconConfig.icon}
+                    </span>
                   </div>
                   <Typography.Title
                     level={5}
