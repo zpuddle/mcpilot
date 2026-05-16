@@ -1,7 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthStore } from '../store/authStore';
-import { Spin } from 'antd';
 
 interface Props {
   children: React.ReactNode;
@@ -12,8 +11,8 @@ const ProtectedRoute: React.FC<Props> = ({ children }) => {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin size="large" />
+      <div className="flex h-screen items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     );
   }

@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
-import { Table, Tag, Select, Space } from 'antd';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditLogs } from '../api/audit';
 import type { AuditLog } from '../api/audit';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const actionColorMap: Record<string, string> = {
-  create: 'green',
-  delete: 'red',
-  deploy: 'blue',
-  update: 'orange',
+const actionVariantMap: Record<string, 'default' | 'destructive' | 'secondary' | 'warning' | 'success'> = {
+  create: 'success',
+  delete: 'destructive',
+  deploy: 'default',
+  update: 'warning',
 };
 
 const actionOptions = [
@@ -31,7 +34,7 @@ const resourceTypeOptions = [
 
 const AdminAudit: React.FC = () => {
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize] = useState(20);
   const [action, setAction] = useState<string>('');
   const [resourceType, setResourceType] = useState<string>('');
 
@@ -46,87 +49,101 @@ const AdminAudit: React.FC = () => {
       }),
   });
 
-  const columns = [
-    {
-      title: '时间',
-      dataIndex: 'created_at',
-      key: 'created_at',
-      width: 180,
-      render: (v: string) => new Date(v).toLocaleString(),
-    },
-    {
-      title: '用户名',
-      dataIndex: 'username',
-      key: 'username',
-      width: 120,
-    },
-    {
-      title: '操作',
-      dataIndex: 'action',
-      key: 'action',
-      width: 100,
-      render: (v: string) => (
-        <Tag color={actionColorMap[v] || 'default'}>{v}</Tag>
-      ),
-    },
-    {
-      title: '资源类型',
-      dataIndex: 'resource_type',
-      key: 'resource_type',
-      width: 120,
-    },
-    {
-      title: '资源名称',
-      dataIndex: 'resource_name',
-      key: 'resource_name',
-      width: 160,
-      render: (v: string | null) => v || '-',
-    },
-    {
-      title: 'IP地址',
-      dataIndex: 'ip_address',
-      key: 'ip_address',
-      width: 140,
-      render: (v: string | null) => v || '-',
-    },
-  ];
+  const totalPages = Math.ceil((data?.total || 0) / pageSize);
 
   return (
     <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h2>审计日志</h2>
-        <Space>
-          <Select
-            value={action}
-            onChange={(v) => { setAction(v); setPage(1); }}
-            options={actionOptions}
-            style={{ width: 140 }}
-            placeholder="操作类型"
-          />
-          <Select
-            value={resourceType}
-            onChange={(v) => { setResourceType(v); setPage(1); }}
-            options={resourceTypeOptions}
-            style={{ width: 140 }}
-            placeholder="资源类型"
-          />
-        </Space>
+      <div className="flex justify-between items-center mb-6">
+        <h4 className="mcpilot-page-title text-lg font-semibold">审计日志</h4>
+        <div className="flex gap-3">
+          <Select value={action || '__all_action__'} onValueChange={(v) => { setAction(v === '__all_action__' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="操作类型" />
+            </SelectTrigger>
+            <SelectContent>
+              {actionOptions.map(opt => (
+                <SelectItem key={opt.value || '__all_action__'} value={opt.value || '__all_action__'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={resourceType || '__all_resource__'} onValueChange={(v) => { setResourceType(v === '__all_resource__' ? '' : v); setPage(1); }}>
+            <SelectTrigger className="w-[140px] h-9">
+              <SelectValue placeholder="资源类型" />
+            </SelectTrigger>
+            <SelectContent>
+              {resourceTypeOptions.map(opt => (
+                <SelectItem key={opt.value || '__all_resource__'} value={opt.value || '__all_resource__'}>
+                  {opt.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
-      <Table<AuditLog>
-        columns={columns}
-        dataSource={data?.data || []}
-        rowKey="id"
-        loading={isLoading}
-        pagination={{
-          current: page,
-          pageSize,
-          total: data?.total || 0,
-          showSizeChanger: true,
-          showTotal: (total) => `共 ${total} 条`,
-          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
-        }}
-      />
+      {isLoading ? (
+        <div className="flex justify-center py-12">
+          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+        </div>
+      ) : (
+        <>
+          <div className="rounded-md border">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-muted/50">
+                  <th className="h-10 px-4 text-left font-medium w-[180px]">时间</th>
+                  <th className="h-10 px-4 text-left font-medium w-[120px]">用户名</th>
+                  <th className="h-10 px-4 text-left font-medium w-[100px]">操作</th>
+                  <th className="h-10 px-4 text-left font-medium w-[120px]">资源类型</th>
+                  <th className="h-10 px-4 text-left font-medium w-[160px]">资源名称</th>
+                  <th className="h-10 px-4 text-left font-medium w-[140px]">IP地址</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(data?.data || []).map((log: AuditLog) => (
+                  <tr key={log.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
+                    <td className="h-10 px-4">{new Date(log.created_at).toLocaleString()}</td>
+                    <td className="h-10 px-4">{log.username}</td>
+                    <td className="h-10 px-4">
+                      <Badge variant={actionVariantMap[log.action] || 'secondary'}>{log.action}</Badge>
+                    </td>
+                    <td className="h-10 px-4">{log.resource_type}</td>
+                    <td className="h-10 px-4">{log.resource_name || '-'}</td>
+                    <td className="h-10 px-4">{log.ip_address || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="flex items-center justify-between mt-4">
+            <span className="text-sm text-muted-foreground">共 {data?.total || 0} 条</span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                {page} / {totalPages || 1}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

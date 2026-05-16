@@ -1,23 +1,45 @@
 import React from 'react';
-import { Layout, Menu, Button, Avatar, Dropdown, Segmented } from 'antd';
-import {
-  DashboardOutlined,
-  CloudServerOutlined,
-  UserOutlined,
-  LogoutOutlined,
-  TeamOutlined,
-  AuditOutlined,
-  AppstoreOutlined,
-  AlertOutlined,
-  SunOutlined,
-  MoonOutlined,
-  DesktopOutlined,
-} from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
+import {
+  LayoutDashboard,
+  Server,
+  LayoutGrid,
+  Users,
+  UserCircle,
+  FileText,
+  Bell,
+  Sun,
+  Moon,
+  Monitor,
+  LogOut,
+  ChevronRight,
+} from 'lucide-react';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
+import { Button } from '@/components/ui/button';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { Separator } from '@/components/ui/separator';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
-const { Header, Sider, Content } = Layout;
+interface NavItem {
+  key: string;
+  icon: React.ElementType;
+  label: string;
+}
 
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
@@ -25,249 +47,194 @@ const MainLayout: React.FC = () => {
   const { user, logout } = useAuthStore();
   const { mode, setMode } = useThemeStore();
 
-  const menuItems = [
-    { key: '/dashboard', icon: <DashboardOutlined />, label: 'Dashboard' },
-    { key: '/services', icon: <CloudServerOutlined />, label: 'MCP Services' },
-    { key: '/templates', icon: <AppstoreOutlined />, label: 'Templates' },
+  const menuItems: NavItem[] = [
+    { key: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+    { key: '/services', icon: Server, label: 'MCP Services' },
+    { key: '/templates', icon: LayoutGrid, label: 'Templates' },
     ...(user?.role_name === 'admin'
       ? [
-          { key: '/admin/users', icon: <TeamOutlined />, label: 'Users' },
-          { key: '/admin/roles', icon: <UserOutlined />, label: 'Roles' },
-          { key: '/admin/audit', icon: <AuditOutlined />, label: '审计日志' },
-          { key: '/admin/alerts', icon: <AlertOutlined />, label: '告警管理' },
+          { key: '/admin/users', icon: Users, label: 'Users' },
+          { key: '/admin/roles', icon: UserCircle, label: 'Roles' },
+          { key: '/admin/audit', icon: FileText, label: '审计日志' },
+          { key: '/admin/alerts', icon: Bell, label: '告警管理' },
         ]
       : []),
   ];
 
-  const handleMenuClick = (e: { key: string }) => {
-    navigate(e.key);
-  };
+  const activeLabel =
+    menuItems.find((item) => location.pathname.startsWith(item.key))?.label ||
+    'MCPilot';
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const userMenu = {
-    items: [
-      { key: 'profile', label: `${user?.username} (${user?.role_name})`, disabled: true },
-      { key: 'logout', icon: <LogoutOutlined />, label: 'Logout', onClick: handleLogout },
-    ],
-  };
-
   return (
-    <Layout style={{ minHeight: '100vh', background: 'var(--mcpilot-bg-gradient)' }}>
-      {/* Decorative Background Orbs */}
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-1" style={{ top: -100, right: 300 }} />
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-2" style={{ bottom: 100, left: 200 }} />
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-3" style={{ top: 350, right: 100 }} />
-
-      <Sider
-        theme="light"
-        breakpoint="lg"
-        collapsedWidth={64}
-        width={260}
-        className="mcpilot-sidebar"
-        style={{
-          background: 'var(--mcpilot-sider-bg)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          borderRight: '1px solid var(--mcpilot-sider-border)',
-          boxShadow: 'var(--mcpilot-sidebar-shadow)',
-          position: 'relative',
-          zIndex: 10,
-        }}
-      >
-        <div
-          style={{
-            height: 64,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 12,
-            padding: '0 20px',
-            borderBottom: '1px solid var(--mcpilot-sider-border)',
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: 'var(--mcpilot-accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 700,
-              fontSize: 14,
-              flexShrink: 0,
-            }}
-          >
+    <div className="flex h-screen bg-background">
+      <aside className="flex w-[260px] shrink-0 flex-col border-r border-border bg-sidebar">
+        <div className="flex h-16 items-center gap-3 px-5">
+          <div className="flex h-[34px] w-[34px] shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground text-[15px] font-bold shadow-[0_4px_12px_rgba(14,165,233,0.25)]">
             M
           </div>
-          <span
-            style={{
-              color: 'var(--mcpilot-text-primary)',
-              fontSize: 18,
-              fontWeight: 700,
-              fontFamily: '"Inter", sans-serif',
-              letterSpacing: '-0.02em',
-            }}
-          >
+          <span className="text-lg font-bold tracking-tight text-foreground">
             MCPilot
           </span>
         </div>
-        <Menu
-          theme="light"
-          mode="inline"
-          selectedKeys={[location.pathname]}
-          items={menuItems}
-          onClick={handleMenuClick}
-          style={{
-            background: 'transparent',
-            borderInlineEnd: 'none',
-            padding: '16px 12px',
-          }}
-        />
-        {/* Sidebar Footer - User Info */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            padding: '16px 12px',
-            borderTop: '1px solid var(--mcpilot-sider-border)',
-          }}
-        >
-          <Dropdown menu={userMenu} placement="topRight">
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 12,
-                padding: '6px 12px',
-                borderRadius: 8,
-                cursor: 'pointer',
-                transition: 'background 200ms ease',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = 'var(--mcpilot-accent-light)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <Avatar
-                icon={<UserOutlined />}
-                size={32}
-                style={{
-                  backgroundColor: 'var(--mcpilot-accent)',
-                  flexShrink: 0,
-                }}
-              />
-              <div style={{ overflow: 'hidden' }}>
-                <div
-                  style={{
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: 'var(--mcpilot-text-primary)',
-                    lineHeight: 1.2,
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                  }}
-                >
-                  {user?.username}
+
+        <Separator />
+
+        <nav className="flex-1 overflow-y-auto px-3 py-4">
+          <ul className="flex flex-col gap-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname.startsWith(item.key);
+              return (
+                <li key={item.key}>
+                  <button
+                    onClick={() => navigate(item.key)}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+                      isActive
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-sidebar-foreground hover:bg-sidebar-accent hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="h-[18px] w-[18px] shrink-0" />
+                    <span>{item.label}</span>
+                    {isActive && (
+                      <ChevronRight className="ml-auto h-4 w-4 opacity-60" />
+                    )}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
+
+        <Separator />
+
+        <div className="px-3 py-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left transition-colors hover:bg-sidebar-accent">
+                <Avatar className="h-8 w-8 shrink-0">
+                  <AvatarFallback className="bg-primary text-primary-foreground text-xs">
+                    {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-[13px] font-medium leading-tight text-foreground">
+                    {user?.username}
+                  </div>
+                  <div className="text-[11px] leading-tight text-muted-foreground">
+                    {user?.role_name}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: 'var(--mcpilot-text-secondary)',
-                    lineHeight: 1.2,
-                  }}
-                >
-                  {user?.role_name}
-                </div>
-              </div>
-            </div>
-          </Dropdown>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-48">
+              <DropdownMenuLabel>
+                {user?.username} ({user?.role_name})
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </Sider>
-      <Layout style={{ background: 'transparent' }}>
-        <Header
-          style={{
-            padding: '0 24px',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            background: 'var(--mcpilot-glass-bg)',
-            borderBottom: '1px solid var(--mcpilot-sider-border)',
-            position: 'sticky',
-            top: 0,
-            zIndex: 100,
-            height: 64,
-            lineHeight: '64px',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <span
-              style={{
-                fontSize: 18,
-                fontWeight: 600,
-                color: 'var(--mcpilot-text-primary)',
-                fontFamily: '"Inter", sans-serif',
-              }}
-            >
-              {menuItems.find((item) => location.pathname.startsWith(item.key))?.label || 'MCPilot'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Segmented
-              size="small"
-              value={mode}
-              onChange={(v) => setMode(v as 'light' | 'dark' | 'system')}
-              options={[
-                { value: 'light', icon: <SunOutlined /> },
-                { value: 'dark', icon: <MoonOutlined /> },
-                { value: 'system', icon: <DesktopOutlined /> },
-              ]}
-            />
-            <Dropdown menu={userMenu} placement="bottomRight">
-              <Button
-                type="text"
-                style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+      </aside>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-50 flex h-16 shrink-0 items-center justify-between border-b border-border bg-background px-6">
+          <h1 className="text-lg font-semibold text-foreground">
+            {activeLabel}
+          </h1>
+
+          <div className="flex items-center gap-3">
+            <TooltipProvider delayDuration={300}>
+              <ToggleGroup
+                type="single"
+                value={mode}
+                onValueChange={(value) => {
+                  if (value) setMode(value as 'light' | 'dark' | 'system');
+                }}
+                className="rounded-lg border border-border bg-muted p-0.5"
               >
-                <Avatar
-                  icon={<UserOutlined />}
-                  size="small"
-                  style={{ backgroundColor: 'var(--mcpilot-accent)' }}
-                />
-                <span style={{ color: 'var(--mcpilot-text-primary)' }}>{user?.username}</span>
-              </Button>
-            </Dropdown>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem
+                      value="light"
+                      size="sm"
+                      className="h-7 w-7 px-0 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+                    >
+                      <Sun className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>Light</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem
+                      value="dark"
+                      size="sm"
+                      className="h-7 w-7 px-0 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+                    >
+                      <Moon className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>Dark</TooltipContent>
+                </Tooltip>
+
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ToggleGroupItem
+                      value="system"
+                      size="sm"
+                      className="h-7 w-7 px-0 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm"
+                    >
+                      <Monitor className="h-4 w-4" />
+                    </ToggleGroupItem>
+                  </TooltipTrigger>
+                  <TooltipContent>System</TooltipContent>
+                </Tooltip>
+              </ToggleGroup>
+            </TooltipProvider>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarFallback className="bg-primary text-primary-foreground text-[10px]">
+                      {user?.username?.charAt(0)?.toUpperCase() || 'U'}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-foreground">{user?.username}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel>
+                  {user?.username} ({user?.role_name})
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </Header>
-        <Content
-          style={{
-            margin: 24,
-            padding: 24,
-            background: 'var(--mcpilot-glass-bg-card)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            borderRadius: 'var(--mcpilot-border-radius)',
-            border: 'var(--mcpilot-card-border)',
-            boxShadow: 'var(--mcpilot-shadow)',
-            minHeight: 360,
-            transition: 'background-color var(--mcpilot-transition), box-shadow var(--mcpilot-transition), border-color var(--mcpilot-transition)',
-          }}
-        >
-          <Outlet />
-        </Content>
-      </Layout>
-    </Layout>
+        </header>
+
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="mx-auto max-w-7xl">
+            <Outlet />
+          </div>
+        </main>
+      </div>
+    </div>
   );
 };
 

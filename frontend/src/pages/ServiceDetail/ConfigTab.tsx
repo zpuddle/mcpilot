@@ -1,6 +1,12 @@
-import React from 'react';
-import { Form, Input, Select, Button, Card, message } from 'antd';
+import React, { useState, memo } from 'react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { updateService } from '../../api/services';
 import type { McpService } from '../../types';
 
@@ -8,22 +14,33 @@ interface Props {
   service: McpService;
 }
 
-const ConfigTab: React.FC<Props> = ({ service }) => {
-  const [form] = Form.useForm();
+const ConfigTab: React.FC<Props> = memo(({ service }) => {
   const queryClient = useQueryClient();
+
+  const envVarsText = Object.entries(service.env_vars || {})
+    .map(([k, v]) => `${k}=${v}`)
+    .join('\n');
+
+  const [form, setForm] = useState({
+    name: service.name,
+    description: service.description || '',
+    transport_type: service.transport_type,
+    env_vars_text: envVarsText,
+    extra_dependencies: service.extra_dependencies || '',
+  });
 
   const mutation = useMutation({
     mutationFn: (values: Record<string, unknown>) => updateService(service.id, values),
     onSuccess: () => {
-      message.success('Configuration updated');
+      toast.success('Configuration updated');
       queryClient.invalidateQueries({ queryKey: ['service', service.id] });
     },
-    onError: () => message.error('Update failed'),
+    onError: () => toast.error('Update failed'),
   });
 
-  const handleSubmit = (values: Record<string, unknown>) => {
-    // Parse env_vars from text to object
-    const envText = values.env_vars_text as string || '';
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const envText = form.env_vars_text || '';
     const envVars: Record<string, string> = {};
     envText.split('\n').forEach((line: string) => {
       const idx = line.indexOf('=');
@@ -35,59 +52,89 @@ const ConfigTab: React.FC<Props> = ({ service }) => {
     });
 
     mutation.mutate({
-      name: values.name,
-      description: values.description,
-      transport_type: values.transport_type,
+      name: form.name,
+      description: form.description,
+      transport_type: form.transport_type,
       env_vars: envVars,
-      extra_dependencies: values.extra_dependencies,
+      extra_dependencies: form.extra_dependencies,
     });
   };
 
-  const envVarsText = Object.entries(service.env_vars || {})
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
-
   return (
-    <Card title="Service Configuration">
-      <Form
-        form={form}
-        layout="vertical"
-        initialValues={{
-          name: service.name,
-          description: service.description,
-          transport_type: service.transport_type,
-          env_vars_text: envVarsText,
-          extra_dependencies: service.extra_dependencies,
-        }}
-        onFinish={handleSubmit}
-      >
-        <Form.Item name="name" label="Service Name" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="description" label="Description">
-          <Input.TextArea rows={2} />
-        </Form.Item>
-        <Form.Item name="transport_type" label="Transport Type">
-          <Select options={[
-            { value: 'sse', label: 'SSE' },
-            { value: 'streamable_http', label: 'Streamable HTTP' },
-            { value: 'both', label: 'Both' },
-          ]} />
-        </Form.Item>
-        <Form.Item name="env_vars_text" label="Environment Variables" help="One per line: KEY=VALUE">
-          <Input.TextArea rows={6} placeholder="API_KEY=your-key-here&#10;DATABASE_URL=postgres://..." style={{ fontFamily: 'monospace' }} />
-        </Form.Item>
-        <Form.Item name="extra_dependencies" label="Extra Python Dependencies" help="One per line, pip format">
-          <Input.TextArea rows={4} placeholder="httpx>=0.27.0&#10;beautifulsoup4&#10;pandas" style={{ fontFamily: 'monospace' }} />
-        </Form.Item>
-        <Form.Item>
-          <Button type="primary" htmlType="submit" loading={mutation.isPending}>
-            Save Configuration
-          </Button>
-        </Form.Item>
-      </Form>
+    <Card>
+      <CardHeader>
+        <CardTitle>Service Configuration</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <form onSubmit={handleSubmit} className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="name">Service Name</Label>
+            <Input
+              id="name"
+              value={form.name}
+              onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+              required
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="description">Description</Label>
+            <Textarea
+              id="description"
+              rows={2}
+              value={form.description}
+              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="transport_type">Transport Type</Label>
+            <Select
+              value={form.transport_type}
+              onValueChange={(v) => setForm((f) => ({ ...f, transport_type: v as 'sse' | 'streamable_http' | 'both' }))}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="sse">SSE</SelectItem>
+                <SelectItem value="streamable_http">Streamable HTTP</SelectItem>
+                <SelectItem value="both">Both</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="env_vars_text">Environment Variables</Label>
+            <p className="text-xs text-muted-foreground">One per line: KEY=VALUE</p>
+            <Textarea
+              id="env_vars_text"
+              rows={6}
+              className="font-mono"
+              placeholder={"API_KEY=your-key-here\nDATABASE_URL=postgres://..."}
+              value={form.env_vars_text}
+              onChange={(e) => setForm((f) => ({ ...f, env_vars_text: e.target.value }))}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="extra_dependencies">Extra Python Dependencies</Label>
+            <p className="text-xs text-muted-foreground">One per line, pip format</p>
+            <Textarea
+              id="extra_dependencies"
+              rows={4}
+              className="font-mono"
+              placeholder={"httpx>=0.27.0\nbeautifulsoup4\npandas"}
+              value={form.extra_dependencies}
+              onChange={(e) => setForm((f) => ({ ...f, extra_dependencies: e.target.value }))}
+            />
+          </div>
+          <div>
+            <Button type="submit" disabled={mutation.isPending}>
+              {mutation.isPending ? 'Saving...' : 'Save Configuration'}
+            </Button>
+          </div>
+        </form>
+      </CardContent>
     </Card>
   );
-};
+});
+ConfigTab.displayName = 'ConfigTab';
 
 export default ConfigTab;

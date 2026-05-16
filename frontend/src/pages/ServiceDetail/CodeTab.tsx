@@ -1,7 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Space, message, Alert } from 'antd';
-import { SaveOutlined, CheckOutlined } from '@ant-design/icons';
-import Editor from '@monaco-editor/react';
+import React, { useState, useEffect, useCallback, memo } from 'react';
+import CodeMirror from '@uiw/react-codemirror';
+import { python } from '@codemirror/lang-python';
+import { vscodeDark } from '@uiw/codemirror-theme-vscode';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { Save, CheckCircle, AlertTriangle, AlertCircle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { getServiceCode, saveServiceCode, validateCode } from '../../api/services';
 
@@ -22,7 +26,7 @@ const EXAMPLE_CODE = `# Write your MCP tool handler functions here.
 
 `;
 
-const CodeTab: React.FC<Props> = ({ serviceId }) => {
+const CodeTab: React.FC<Props> = memo(({ serviceId }) => {
   const [code, setCode] = useState('');
   const [dirty, setDirty] = useState(false);
   const [validation, setValidation] = useState<{ valid: boolean; errors: string[]; warnings: string[] } | null>(null);
@@ -30,6 +34,7 @@ const CodeTab: React.FC<Props> = ({ serviceId }) => {
   const { data } = useQuery({
     queryKey: ['service-code', serviceId],
     queryFn: () => getServiceCode(serviceId),
+    staleTime: 60_000,
   });
 
   useEffect(() => {
@@ -41,8 +46,8 @@ const CodeTab: React.FC<Props> = ({ serviceId }) => {
 
   const saveMutation = useMutation({
     mutationFn: () => saveServiceCode(serviceId, code),
-    onSuccess: () => { message.success('Code saved'); setDirty(false); },
-    onError: () => message.error('Save failed'),
+    onSuccess: () => { toast.success('Code saved'); setDirty(false); },
+    onError: () => toast.error('Save failed'),
   });
 
   const validateMutation = useMutation({
@@ -50,57 +55,90 @@ const CodeTab: React.FC<Props> = ({ serviceId }) => {
     onSuccess: (result) => {
       setValidation(result);
       if (result.valid && result.warnings.length === 0) {
-        message.success('Code is valid');
+        toast.success('Code is valid');
       }
     },
   });
 
-  const handleEditorChange = (value: string | undefined) => {
-    setCode(value || '');
+  const handleChange = useCallback((value: string) => {
+    setCode(value);
     setDirty(true);
     setValidation(null);
-  };
+  }, []);
 
   return (
     <div>
-      <Space style={{ marginBottom: 12 }}>
-        <Button type="primary" icon={<SaveOutlined />} onClick={() => saveMutation.mutate()} loading={saveMutation.isPending} disabled={!dirty}>
+      <div className="mb-3 flex items-center gap-3">
+        <Button
+          size="sm"
+          onClick={() => saveMutation.mutate()}
+          disabled={!dirty}
+        >
+          <Save className="mr-1.5 h-4 w-4" />
           Save
         </Button>
-        <Button icon={<CheckOutlined />} onClick={() => validateMutation.mutate()} loading={validateMutation.isPending}>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => validateMutation.mutate()}
+        >
+          <CheckCircle className="mr-1.5 h-4 w-4" />
           Validate
         </Button>
-        {dirty && <span style={{ color: '#faad14' }}>Unsaved changes</span>}
-      </Space>
+        {dirty && <span className="text-sm text-warning">Unsaved changes</span>}
+      </div>
 
       {validation && !validation.valid && (
-        <Alert type="error" message="Validation Errors" description={validation.errors.join('\n')} style={{ marginBottom: 12 }} showIcon />
+        <Card className="mb-3 border-destructive/50 bg-destructive/5">
+          <CardContent className="flex items-start gap-2 p-3">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+            <div>
+              <p className="font-medium text-destructive">Validation Errors</p>
+              <pre className="mt-1 text-sm text-destructive/80">{validation.errors.join('\n')}</pre>
+            </div>
+          </CardContent>
+        </Card>
       )}
       {validation && validation.warnings.length > 0 && (
-        <Alert type="warning" message="Warnings" description={validation.warnings.join('\n')} style={{ marginBottom: 12 }} showIcon />
+        <Card className="mb-3 border-warning/50 bg-warning/5">
+          <CardContent className="flex items-start gap-2 p-3">
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warning" />
+            <div>
+              <p className="font-medium text-warning">Warnings</p>
+              <pre className="mt-1 text-sm text-warning/80">{validation.warnings.join('\n')}</pre>
+            </div>
+          </CardContent>
+        </Card>
       )}
       {validation && validation.valid && validation.warnings.length === 0 && (
-        <Alert type="success" message="Code is valid" style={{ marginBottom: 12 }} showIcon />
+        <Card className="mb-3 border-success/50 bg-success/5">
+          <CardContent className="flex items-center gap-2 p-3">
+            <CheckCircle className="h-4 w-4 text-success" />
+            <p className="font-medium text-success">Code is valid</p>
+          </CardContent>
+        </Card>
       )}
 
-      <div style={{ border: '1px solid #d9d9d9', borderRadius: 4 }}>
-        <Editor
-          height="600px"
-          language="python"
-          theme="vs-dark"
+      <div className="overflow-hidden rounded-lg border border-border">
+        <CodeMirror
           value={code}
-          onChange={handleEditorChange}
-          options={{
-            fontSize: 14,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            automaticLayout: true,
-            tabSize: 4,
+          height="600px"
+          theme={vscodeDark}
+          extensions={[python()]}
+          onChange={handleChange}
+          basicSetup={{
+            lineNumbers: true,
+            foldGutter: true,
+            highlightActiveLine: true,
+            bracketMatching: true,
+            autocompletion: false,
+            indentOnInput: true,
           }}
         />
       </div>
     </div>
   );
-};
+});
+CodeTab.displayName = 'CodeTab';
 
 export default CodeTab;

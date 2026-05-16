@@ -1,23 +1,24 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, lazy } from 'react';
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Skeleton } from 'antd';
 import MainLayout from '../components/Layout/MainLayout';
 import ProtectedRoute from '../components/ProtectedRoute';
 
-// 懒加载页面
-const Login = React.lazy(() => import('../pages/Login'));
-const Dashboard = React.lazy(() => import('../pages/Dashboard'));
-const ServiceList = React.lazy(() => import('../pages/ServiceList'));
-const ServiceDetail = React.lazy(() => import('../pages/ServiceDetail'));
-const AdminUsers = React.lazy(() => import('../pages/AdminUsers'));
-const AdminRoles = React.lazy(() => import('../pages/AdminRoles'));
-const AdminAudit = React.lazy(() => import('../pages/AdminAudit'));
-const AdminAlerts = React.lazy(() => import('../pages/AdminAlerts'));
-const Templates = React.lazy(() => import('../pages/Templates'));
+const Login = lazy(() => import('../pages/Login'));
+const Dashboard = lazy(() => import('../pages/Dashboard'));
+const ServiceList = lazy(() => import('../pages/ServiceList'));
+const ServiceDetail = lazy(() => import('../pages/ServiceDetail'));
+const AdminUsers = lazy(() => import('../pages/AdminUsers'));
+const AdminRoles = lazy(() => import('../pages/AdminRoles'));
+const AdminAudit = lazy(() => import('../pages/AdminAudit'));
+const AdminAlerts = lazy(() => import('../pages/AdminAlerts'));
+const Templates = lazy(() => import('../pages/Templates'));
 
-// 统一骨架屏包裹
 const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Suspense fallback={<Skeleton active paragraph={{ rows: 8 }} style={{ padding: 24 }} />}>
+  <Suspense fallback={
+    <div className="flex items-center justify-center p-12">
+      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+    </div>
+  }>
     {children}
   </Suspense>
 );

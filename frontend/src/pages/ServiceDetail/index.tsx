@@ -1,14 +1,22 @@
-import React from 'react';
-import { Tabs, Spin } from 'antd';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import React, { Suspense, lazy, useState, useMemo } from 'react';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Loader2 } from 'lucide-react';
 import { getService } from '../../api/services';
-import OverviewTab from './OverviewTab';
-import CodeTab from './CodeTab';
-import ToolsTab from './ToolsTab';
-import ConfigTab from './ConfigTab';
-import DeployTab from './DeployTab';
-import LogsTab from './LogsTab';
+
+const OverviewTab = lazy(() => import('./OverviewTab'));
+const CodeTab = lazy(() => import('./CodeTab'));
+const ToolsTab = lazy(() => import('./ToolsTab'));
+const ConfigTab = lazy(() => import('./ConfigTab'));
+const DeployTab = lazy(() => import('./DeployTab'));
+const LogsTab = lazy(() => import('./LogsTab'));
+
+const tabFallback = (
+  <div className="flex items-center justify-center p-12">
+    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+  </div>
+);
 
 const ServiceDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -16,44 +24,84 @@ const ServiceDetail: React.FC = () => {
   const location = useLocation();
   const serviceId = Number(id);
 
+  const [mountedTabs, setMountedTabs] = useState<Set<string>>(new Set(['overview']));
+
   const { data: service, isLoading } = useQuery({
     queryKey: ['service', serviceId],
     queryFn: () => getService(serviceId),
     enabled: !!serviceId,
+    staleTime: 30_000,
   });
-
-  if (isLoading) return <Spin size="large" />;
-  if (!service) return <div>Service not found</div>;
 
   const pathParts = location.pathname.split('/');
   const activeTab = pathParts[pathParts.length - 1] || 'overview';
 
-  const tabItems = [
-    { key: 'overview', label: 'Overview', children: <OverviewTab service={service} /> },
-    { key: 'code', label: 'Code', children: <CodeTab serviceId={serviceId} /> },
-    { key: 'tools', label: 'Tools & Resources', children: <ToolsTab serviceId={serviceId} /> },
-    { key: 'config', label: 'Config', children: <ConfigTab service={service} /> },
-    { key: 'deploy', label: 'Deploy', children: <DeployTab serviceId={serviceId} service={service} /> },
-    { key: 'logs', label: 'Logs', children: <LogsTab serviceId={serviceId} service={service} /> },
-  ];
+  const handleTabChange = (key: string) => {
+    setMountedTabs((prev) => {
+      if (prev.has(key)) return prev;
+      return new Set(prev).add(key);
+    });
+    navigate(`/services/${serviceId}/${key}`);
+  };
+
+  const tabConfig = useMemo(() => [
+    { key: 'overview', label: 'Overview' },
+    { key: 'code', label: 'Code' },
+    { key: 'tools', label: 'Tools & Resources' },
+    { key: 'config', label: 'Config' },
+    { key: 'deploy', label: 'Deploy' },
+    { key: 'logs', label: 'Logs' },
+  ], []);
+
+  const tabContent = useMemo(() => {
+    const wrap = (key: string, el: React.ReactNode) => {
+      if (!mountedTabs.has(key)) return null;
+      return (
+        <div style={{ display: activeTab === key ? 'block' : 'none' }}>
+          <Suspense fallback={tabFallback}>{el}</Suspense>
+        </div>
+      );
+    };
+
+    return {
+      overview: wrap('overview', <OverviewTab service={service!} />),
+      code: wrap('code', <CodeTab serviceId={serviceId} />),
+      tools: wrap('tools', <ToolsTab serviceId={serviceId} />),
+      config: wrap('config', <ConfigTab service={service!} />),
+      deploy: wrap('deploy', <DeployTab serviceId={serviceId} service={service!} />),
+      logs: wrap('logs', <LogsTab serviceId={serviceId} service={service!} />),
+    };
+  }, [activeTab, mountedTabs, service, serviceId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-24">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+  if (!service) return <div className="text-muted-foreground p-8 text-center">Service not found</div>;
 
   return (
     <div>
-      <h2
-        style={{
-          color: 'var(--mcpilot-text-primary)',
-          fontWeight: 600,
-          fontFamily: '"Inter", sans-serif',
-          marginBottom: 16,
-        }}
-      >
-        {service.name}
-      </h2>
-      <Tabs
-        activeKey={activeTab}
-        onChange={(key) => navigate(`/services/${serviceId}/${key}`)}
-        items={tabItems}
-      />
+      <h2 className="mcpilot-page-title mb-4">{service.name}</h2>
+      <Tabs value={activeTab} onValueChange={handleTabChange}>
+        <TabsList>
+          {tabConfig.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>
+              {tab.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+      <div className="mt-4">
+        {tabContent.overview}
+        {tabContent.code}
+        {tabContent.tools}
+        {tabContent.config}
+        {tabContent.deploy}
+        {tabContent.logs}
+      </div>
     </div>
   );
 };

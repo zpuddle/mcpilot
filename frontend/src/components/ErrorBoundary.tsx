@@ -1,5 +1,5 @@
 import React from 'react';
-import { Result, Button } from 'antd';
+import { Button } from '@/components/ui/button';
 
 interface ErrorBoundaryState {
   hasError: boolean;
@@ -32,20 +32,15 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: 48, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-          <Result
-            status="error"
-            title="页面出现错误"
-            subTitle={this.state.error?.message || '未知错误'}
-            extra={[
-              <Button type="primary" key="home" onClick={this.handleReset}>
-                返回首页
-              </Button>,
-              <Button key="reload" onClick={() => window.location.reload()}>
-                刷新页面
-              </Button>,
-            ]}
-          />
+        <div className="flex min-h-screen items-center justify-center p-12">
+          <div className="text-center">
+            <div className="mb-4 text-5xl font-bold text-destructive">Error</div>
+            <p className="mb-6 text-muted-foreground">{this.state.error?.message || '未知错误'}</p>
+            <div className="flex gap-3 justify-center">
+              <Button onClick={this.handleReset}>返回首页</Button>
+              <Button variant="outline" onClick={() => window.location.reload()}>刷新页面</Button>
+            </div>
+          </div>
         </div>
       );
     }

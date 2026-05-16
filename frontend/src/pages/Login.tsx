@@ -1,216 +1,116 @@
 import React, { useState } from 'react';
-import { Form, Input, Button, message, Typography } from 'antd';
-import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import { login } from '../api/auth';
-import { useAuthStore } from '../store/authStore';
-
-const { Title, Text } = Typography;
+import { login } from '@/api/auth';
+import { useAuthStore } from '@/store/authStore';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent } from '@/components/ui/card';
+import { toast } from 'sonner';
+import { User, Lock } from 'lucide-react';
 
 const Login: React.FC = () => {
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const authLogin = useAuthStore((s) => s.login);
 
-  const onFinish = async (values: { username: string; password: string }) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!username || !password) {
+      toast.error('Please enter username and password');
+      return;
+    }
     setLoading(true);
     try {
-      const data = await login(values.username, values.password);
+      const data = await login(username, password);
       await authLogin(data.access_token, data.refresh_token);
-      message.success('Login successful');
+      toast.success('Login successful');
       navigate('/dashboard');
     } catch (err: unknown) {
       const error = err as { response?: { data?: { detail?: string } } };
-      message.error(error.response?.data?.detail || 'Login failed');
+      toast.error(error.response?.data?.detail || 'Login failed');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        background: '#F0F9FF',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Decorative Orbs */}
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-1" style={{ top: -80, right: 200 }} />
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-2" style={{ bottom: 50, right: 400 }} />
-      <div className="mcpilot-deco-orb mcpilot-deco-orb-3" style={{ top: 350, left: 500 }} />
+    <div className="flex min-h-screen">
+      <div className="hidden lg:flex w-1/2 flex-col items-center justify-center gap-8 p-16 bg-gradient-to-br from-primary/5 via-background to-primary/10 relative overflow-hidden">
+        <div className="absolute top-[-80px] right-[200px] w-72 h-72 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute bottom-[50px] right-[400px] w-56 h-56 rounded-full bg-primary/5 blur-3xl" />
 
-      {/* Left Panel - Brand */}
-      <div
-        style={{
-          width: '50%',
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 32,
-          padding: 60,
-          background: 'linear-gradient(180deg, #0EA5E9, #06B6D4, #0284C7)',
-          position: 'relative',
-        }}
-      >
-        <div
-          style={{
-            width: 64,
-            height: 64,
-            borderRadius: 16,
-            background: 'rgba(255, 255, 255, 0.12)',
-            backdropFilter: 'blur(8px)',
-            WebkitBackdropFilter: 'blur(8px)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontSize: 28,
-            fontWeight: 700,
-          }}
-        >
+        <div className="w-16 h-16 rounded-2xl bg-primary flex items-center justify-center text-primary-foreground text-[28px] font-bold shadow-lg shadow-primary/30">
           M
         </div>
-        <Title
-          level={1}
-          style={{
-            margin: 0,
-            color: '#FFFFFF',
-            fontWeight: 800,
-            fontSize: 40,
-            letterSpacing: '-0.03em',
-            textAlign: 'center',
-          }}
-        >
+        <h1 className="m-0 text-4xl font-extrabold tracking-tight text-foreground">
           MCPilot
-        </Title>
-        <Text
-          style={{
-            color: 'rgba(255, 255, 255, 0.80)',
-            fontSize: 16,
-            textAlign: 'center',
-          }}
-        >
+        </h1>
+        <p className="text-muted-foreground text-base text-center">
           MCP Service Management Platform
-        </Text>
-        <div
-          style={{
-            width: 360,
-            height: 200,
-            borderRadius: 24,
-            background: 'rgba(255, 255, 255, 0.08)',
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 16,
-            padding: 24,
-          }}
-        >
-          <UserOutlined style={{ fontSize: 48, color: 'rgba(255, 255, 255, 0.50)' }} />
-          <Text
-            style={{
-              color: 'rgba(255, 255, 255, 0.67)',
-              fontSize: 14,
-              textAlign: 'center',
-              lineHeight: 1.6,
-            }}
-          >
-            Manage, deploy and monitor<br />your MCP services with ease
-          </Text>
-        </div>
+        </p>
+
+        <Card className="w-[360px] mt-4 bg-background/40 backdrop-blur border-border/40">
+          <CardContent className="flex flex-col items-center gap-4 p-8">
+            <User className="w-12 h-12 text-primary/50" />
+            <p className="text-muted-foreground text-sm text-center leading-relaxed">
+              Manage, deploy and monitor<br />your MCP services with ease
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div
-        style={{
-          width: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(255, 255, 255, 0.90)',
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
-          padding: 80,
-          boxShadow: '-4px 0 24px rgba(14, 165, 233, 0.06)',
-          position: 'relative',
-        }}
-      >
-        <div style={{ width: 400 }}>
-          {/* Header */}
-          <div style={{ marginBottom: 32 }}>
-            <Title
-              level={2}
-              style={{
-                margin: 0,
-                color: '#0F172A',
-                fontWeight: 700,
-                fontSize: 28,
-                letterSpacing: '-0.02em',
-              }}
-            >
+      <div className="flex w-full lg:w-1/2 items-center justify-center p-8 lg:p-20">
+        <div className="w-full max-w-[400px]">
+          <div className="mb-8">
+            <h2 className="text-[28px] font-bold tracking-tight text-foreground">
               Welcome back
-            </Title>
-            <Text style={{ color: '#64748B', fontSize: 14, marginTop: 8, display: 'block' }}>
+            </h2>
+            <p className="text-muted-foreground text-sm mt-2">
               Sign in to your account
-            </Text>
+            </p>
           </div>
 
-          {/* Form */}
-          <Form name="login" onFinish={onFinish} size="large" autoComplete="off" layout="vertical">
-            <Form.Item
-              name="username"
-              rules={[{ required: true, message: 'Please enter username' }]}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="space-y-2">
+              <Label htmlFor="username">Username</Label>
+              <div className="relative">
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="username"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="h-12 pl-10 rounded-[10px]"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="h-12 pl-10 rounded-[10px]"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              disabled={loading}
+              className="w-full h-12 rounded-[10px] font-semibold text-[15px]"
             >
-              <Input
-                prefix={<UserOutlined style={{ color: '#94A3B8' }} />}
-                placeholder="Username"
-                style={{
-                  borderRadius: 10,
-                  height: 48,
-                  borderColor: '#E2E8F0',
-                }}
-              />
-            </Form.Item>
-            <Form.Item
-              name="password"
-              rules={[{ required: true, message: 'Please enter password' }]}
-            >
-              <Input.Password
-                prefix={<LockOutlined style={{ color: '#94A3B8' }} />}
-                placeholder="Password"
-                style={{
-                  borderRadius: 10,
-                  height: 48,
-                  borderColor: '#E2E8F0',
-                }}
-              />
-            </Form.Item>
-            <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-                style={{
-                  height: 48,
-                  borderRadius: 10,
-                  fontWeight: 600,
-                  fontSize: 15,
-                  background: 'linear-gradient(180deg, #0EA5E9, #0284C7)',
-                  border: 'none',
-                  boxShadow: '0 4px 12px rgba(14, 165, 233, 0.20)',
-                }}
-              >
-                Sign In
-              </Button>
-            </Form.Item>
-          </Form>
+              {loading ? 'Signing in...' : 'Sign In'}
+            </Button>
+          </form>
         </div>
       </div>
     </div>
