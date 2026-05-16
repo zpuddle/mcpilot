@@ -27,17 +27,23 @@ services:
       - SECRET_KEY=change-this-secret-key-in-production
       - ADMIN_PASSWORD=admin123
       - DATABASE_URL=postgresql+asyncpg://mcpadmin:mcpadmin123@postgres:5432/mcpilot
-      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost
     volumes:
-      - ./backend:/app
-      # Docker socket 挂载：
-      # Linux/macOS: /var/run/docker.sock:/var/run/docker.sock
-      # Windows Docker Desktop 容器内自动映射，无需额外配置
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       postgres:
         condition: service_healthy
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8020 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8020
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: mcpilot-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
 
 networks:
   default:
