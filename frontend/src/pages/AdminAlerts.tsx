@@ -1,430 +1,183 @@
-import React, { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react'
+import { motion } from 'framer-motion'
+import { toast } from 'sonner'
 import {
-  listAlertRules,
-  createAlertRule,
-  updateAlertRule,
-  deleteAlertRule,
-  listAlerts,
-  resolveAlert,
-} from '../api/monitoring';
-import type { AlertRule, AlertHistoryItem } from '../api/monitoring';
-import { listServices } from '../api/services';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { toast } from 'sonner';
-import { Plus, Edit, Trash2, Check, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+  Bell,
+  CheckCircle,
+  AlertTriangle,
+  XCircle,
+  Search,
+  Settings,
+  MoreVertical,
+  Eye,
+} from 'lucide-react'
+import { formatRelativeTime } from '@/utils/formatters'
 
-const conditionTypes = [
-  { value: 'cpu_above', label: 'CPU 使用率超过' },
-  { value: 'memory_above', label: '内存使用率超过' },
-  { value: 'restart_count', label: '重启次数超过' },
-  { value: 'container_down', label: '容器宕机' },
-  { value: 'health_check_fail', label: '健康检查失败' },
-];
+const mockAlerts = [
+  {
+    id: 1,
+    title: 'Weather API 服务异常',
+    message: '服务响应时间超出阈值 5000ms',
+    level: 'critical',
+    service_name: 'Weather API',
+    is_resolved: false,
+    created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: 2,
+    title: '数据库连接数警告',
+    message: '当前连接数达到 80% 上限',
+    level: 'warning',
+    service_name: 'Database Service',
+    is_resolved: true,
+    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+  },
+  {
+    id: 3,
+    title: '缓存服务已恢复',
+    message: 'Cache Service 已成功重启',
+    level: 'info',
+    service_name: 'Cache Service',
+    is_resolved: true,
+    created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+  },
+]
 
-const RulesTab: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingRule, setEditingRule] = useState<AlertRule | null>(null);
-  const [formName, setFormName] = useState('');
-  const [formServiceId, setFormServiceId] = useState<string>('');
-  const [formConditionType, setFormConditionType] = useState('');
-  const [formThreshold, setFormThreshold] = useState('');
-  const [formNotifyMethod, setFormNotifyMethod] = useState('log');
-  const [formWebhookUrl, setFormWebhookUrl] = useState('');
-  const [formIsEnabled, setFormIsEnabled] = useState(true);
+export function AdminAlerts() {
+  const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('all')
 
-  const { data: rules = [], isLoading } = useQuery({
-    queryKey: ['alert-rules'],
-    queryFn: listAlertRules,
-  });
+  const filteredAlerts = mockAlerts.filter((alert) => {
+    if (filter === 'active') return !alert.is_resolved
+    if (filter === 'resolved') return alert.is_resolved
+    return true
+  })
 
-  const { data: servicesResp } = useQuery({
-    queryKey: ['services-list-all'],
-    queryFn: () => listServices(1, 200),
-  });
-  const services = servicesResp?.data ?? [];
-
-  const createMut = useMutation({
-    mutationFn: createAlertRule,
-    onSuccess: () => {
-      toast.success('规则创建成功');
-      queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
-      closeModal();
-    },
-  });
-
-  const updateMut = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: Partial<AlertRule> }) => updateAlertRule(id, data),
-    onSuccess: () => {
-      toast.success('规则更新成功');
-      queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
-      closeModal();
-    },
-  });
-
-  const deleteMut = useMutation({
-    mutationFn: deleteAlertRule,
-    onSuccess: () => {
-      toast.success('规则已删除');
-      queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
-    },
-  });
-
-  const toggleMut = useMutation({
-    mutationFn: ({ id, is_enabled }: { id: number; is_enabled: boolean }) =>
-      updateAlertRule(id, { is_enabled }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alert-rules'] });
-    },
-  });
-
-  const closeModal = () => {
-    setModalOpen(false);
-    setEditingRule(null);
-    setFormName('');
-    setFormServiceId('');
-    setFormConditionType('');
-    setFormThreshold('');
-    setFormNotifyMethod('log');
-    setFormWebhookUrl('');
-    setFormIsEnabled(true);
-  };
-
-  const openCreate = () => {
-    setEditingRule(null);
-    setFormName('');
-    setFormServiceId('');
-    setFormConditionType('');
-    setFormThreshold('');
-    setFormNotifyMethod('log');
-    setFormWebhookUrl('');
-    setFormIsEnabled(true);
-    setModalOpen(true);
-  };
-
-  const openEdit = (rule: AlertRule) => {
-    setEditingRule(rule);
-    setFormName(rule.name);
-    setFormServiceId(rule.service_id != null ? String(rule.service_id) : '');
-    setFormConditionType(rule.condition_type);
-    setFormThreshold(rule.threshold ?? '');
-    setFormNotifyMethod(rule.notify_method);
-    setFormWebhookUrl(rule.webhook_url ?? '');
-    setFormIsEnabled(rule.is_enabled);
-    setModalOpen(true);
-  };
-
-  const handleSubmit = () => {
-    if (!formName.trim() || !formConditionType) return;
-    const payload: Partial<AlertRule> = {
-      name: formName.trim(),
-      service_id: formServiceId ? Number(formServiceId) : null,
-      condition_type: formConditionType,
-      threshold: formThreshold || null,
-      notify_method: formNotifyMethod,
-      webhook_url: formNotifyMethod === 'webhook' ? formWebhookUrl : null,
-      is_enabled: formIsEnabled,
-    };
-    if (editingRule) {
-      updateMut.mutate({ id: editingRule.id, data: payload });
-    } else {
-      createMut.mutate(payload);
+  const getAlertIcon = (level: string) => {
+    switch (level) {
+      case 'critical':
+        return <XCircle className="h-6 w-6 text-red-500" />
+      case 'warning':
+        return <AlertTriangle className="h-6 w-6 text-yellow-500" />
+      default:
+        return <Bell className="h-6 w-6 text-blue-500" />
     }
-  };
+  }
 
-  const getConditionLabel = (v: string) => {
-    const found = conditionTypes.find(c => c.value === v);
-    return found ? found.label : v;
-  };
+  const getAlertColor = (level: string) => {
+    switch (level) {
+      case 'critical':
+        return 'border-red-200 bg-red-50'
+      case 'warning':
+        return 'border-yellow-200 bg-yellow-50'
+      default:
+        return 'border-blue-200 bg-blue-50'
+    }
+  }
+
+  const handleResolve = (id: number, title: string) => {
+    toast.success(`已解决: "${title}"`)
+  }
 
   return (
-    <>
-      <div className="mb-4">
-        <Button onClick={openCreate}>
-          <Plus className="h-4 w-4" />
-          新建规则
-        </Button>
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">告警管理</h1>
+          <p className="text-gray-500 mt-1">监控和管理系统告警</p>
+        </div>
+        <button className="btn-secondary">
+          <Settings className="h-4 w-4 mr-2" />
+          告警规则
+        </button>
       </div>
 
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <div className="rounded-md border">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="h-10 px-4 text-left font-medium">名称</th>
-                <th className="h-10 px-4 text-left font-medium">条件类型</th>
-                <th className="h-10 px-4 text-left font-medium">阈值</th>
-                <th className="h-10 px-4 text-left font-medium">通知方式</th>
-                <th className="h-10 px-4 text-left font-medium">状态</th>
-                <th className="h-10 px-4 text-left font-medium">操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rules.map((rule) => (
-                <tr key={rule.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                  <td className="h-10 px-4">{rule.name}</td>
-                  <td className="h-10 px-4">{getConditionLabel(rule.condition_type)}</td>
-                  <td className="h-10 px-4">{rule.threshold ?? '-'}</td>
-                  <td className="h-10 px-4">
-                    <Badge variant="secondary">{rule.notify_method}</Badge>
-                  </td>
-                  <td className="h-10 px-4">
-                    <Switch
-                      checked={rule.is_enabled}
-                      onCheckedChange={(checked) => toggleMut.mutate({ id: rule.id, is_enabled: checked })}
-                    />
-                  </td>
-                  <td className="h-10 px-4">
-                    <div className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" onClick={() => openEdit(rule)}>
-                        <Edit className="h-4 w-4" />
-                        编辑
-                      </Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
-                            <Trash2 className="h-4 w-4" />
-                            删除
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>确认删除</AlertDialogTitle>
-                            <AlertDialogDescription>确认删除此规则？此操作无法撤销。</AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>取消</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => deleteMut.mutate(rule.id)}>删除</AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+      <div className="flex gap-2">
+        {[
+          { key: 'all', label: '全部' },
+          { key: 'active', label: '未解决' },
+          { key: 'resolved', label: '已解决' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            onClick={() => setFilter(key as any)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              filter === key
+                ? 'bg-primary-100 text-primary-700'
+                : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <Dialog open={modalOpen} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>{editingRule ? '编辑规则' : '新建规则'}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="rule-name">名称</Label>
-              <Input
-                id="rule-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder="例：CPU 过高告警"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>服务（可选，不选则适用所有服务）</Label>
-              <Select value={formServiceId || '__all_services__'} onValueChange={(v) => setFormServiceId(v === '__all_services__' ? '' : v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="全部服务" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__all_services__">全部服务</SelectItem>
-                  {services.map(s => (
-                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>条件类型</Label>
-              <Select value={formConditionType || '__none__'} onValueChange={(v) => setFormConditionType(v === '__none__' ? '' : v)}>
-                <SelectTrigger className="h-9">
-                  <SelectValue placeholder="选择条件" />
-                </SelectTrigger>
-                <SelectContent>
-                  {conditionTypes.map(ct => (
-                    <SelectItem key={ct.value} value={ct.value}>{ct.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="rule-threshold">阈值</Label>
-              <Input
-                id="rule-threshold"
-                value={formThreshold}
-                onChange={(e) => setFormThreshold(e.target.value)}
-                placeholder="例：80（百分比）或 5（次数）"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>通知方式</Label>
-              <RadioGroup value={formNotifyMethod} onValueChange={setFormNotifyMethod} className="flex gap-4">
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="log" id="notify-log" />
-                  <Label htmlFor="notify-log" className="font-normal">日志</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="webhook" id="notify-webhook" />
-                  <Label htmlFor="notify-webhook" className="font-normal">Webhook</Label>
-                </div>
-              </RadioGroup>
-            </div>
-            {formNotifyMethod === 'webhook' && (
-              <div className="space-y-2">
-                <Label htmlFor="rule-webhook">Webhook URL</Label>
-                <Input
-                  id="rule-webhook"
-                  value={formWebhookUrl}
-                  onChange={(e) => setFormWebhookUrl(e.target.value)}
-                  placeholder="https://..."
-                />
+      <div className="space-y-4">
+        {filteredAlerts.map((alert, index) => (
+          <motion.div
+            key={alert.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className={`card p-6 border-l-4 ${getAlertColor(alert.level)} ${
+              alert.is_resolved ? 'opacity-60' : ''
+            }`}
+          >
+            <div className="flex items-start gap-4">
+              <div className="shrink-0 mt-1">
+                {getAlertIcon(alert.level)}
               </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={closeModal}>取消</Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!formName.trim() || !formConditionType || createMut.isPending || updateMut.isPending}
-            >
-              {(createMut.isPending || updateMut.isPending) && <Loader2 className="h-4 w-4 animate-spin" />}
-              {editingRule ? '更新' : '创建'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
-  );
-};
-
-const HistoryTab: React.FC = () => {
-  const queryClient = useQueryClient();
-  const [page, setPage] = useState(1);
-
-  const { data, isLoading } = useQuery({
-    queryKey: ['alerts', page],
-    queryFn: () => listAlerts({ page, size: 20 }),
-  });
-
-  const resolveMut = useMutation({
-    mutationFn: resolveAlert,
-    onSuccess: () => {
-      toast.success('告警已标记为已解决');
-      queryClient.invalidateQueries({ queryKey: ['alerts'] });
-    },
-  });
-
-  const totalPages = Math.ceil((data?.total ?? 0) / 20);
-
-  return (
-    <>
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-        </div>
-      ) : (
-        <>
-          <div className="rounded-md border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="h-10 px-4 text-left font-medium w-[180px]">时间</th>
-                  <th className="h-10 px-4 text-left font-medium">服务</th>
-                  <th className="h-10 px-4 text-left font-medium">告警类型</th>
-                  <th className="h-10 px-4 text-left font-medium">消息</th>
-                  <th className="h-10 px-4 text-left font-medium">状态</th>
-                  <th className="h-10 px-4 text-left font-medium">操作</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(data?.data ?? []).map((alert: AlertHistoryItem) => (
-                  <tr key={alert.id} className="border-b last:border-0 hover:bg-muted/30 transition-colors">
-                    <td className="h-10 px-4">{alert.created_at}</td>
-                    <td className="h-10 px-4">{alert.service_name ?? '-'}</td>
-                    <td className="h-10 px-4">
-                      <Badge variant="warning">{alert.alert_type}</Badge>
-                    </td>
-                    <td className="h-10 px-4 max-w-[300px] truncate">{alert.message}</td>
-                    <td className="h-10 px-4">
-                      {alert.resolved ? (
-                        <Badge variant="success">已解决</Badge>
-                      ) : (
-                        <Badge variant="destructive">未解决</Badge>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="font-semibold text-gray-900">{alert.title}</h3>
+                      {alert.is_resolved && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                          <CheckCircle className="h-3 w-3 mr-1" />
+                          已解决
+                        </span>
                       )}
-                    </td>
-                    <td className="h-10 px-4">
-                      {!alert.resolved ? (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => resolveMut.mutate(alert.id)}
-                          disabled={resolveMut.isPending}
-                        >
-                          {resolveMut.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-                          标记已解决
-                        </Button>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="flex items-center justify-between mt-4">
-            <span className="text-sm text-muted-foreground">共 {data?.total ?? 0} 条</span>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>
-                <ChevronLeft className="h-4 w-4" />
-              </Button>
-              <span className="text-sm text-muted-foreground">{page} / {totalPages || 1}</span>
-              <Button variant="outline" size="sm" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
+                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
+                      <span>服务: {alert.service_name}</span>
+                      <span>{formatRelativeTime(alert.created_at)}</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                      <Eye className="h-4 w-4" />
+                    </button>
+                    {!alert.is_resolved && (
+                      <button
+                        onClick={() => handleResolve(alert.id, alert.title)}
+                        className="btn-success py-2 text-sm"
+                      >
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        标记解决
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        </>
+          </motion.div>
+        ))}
+      </div>
+
+      {filteredAlerts.length === 0 && (
+        <div className="card p-12 text-center">
+          <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">没有告警</h3>
+          <p className="text-gray-500">
+            {filter === 'active'
+              ? '太棒了！没有未解决的告警'
+              : filter === 'resolved'
+              ? '还没有已解决的告警记录'
+              : '一切运行正常！'}
+          </p>
+        </div>
       )}
-    </>
-  );
-};
-
-const AdminAlerts: React.FC = () => {
-  return (
-    <div>
-      <h4 className="mcpilot-page-title text-lg font-semibold mb-6">告警管理</h4>
-      <Tabs defaultValue="rules">
-        <TabsList>
-          <TabsTrigger value="rules">告警规则</TabsTrigger>
-          <TabsTrigger value="history">告警历史</TabsTrigger>
-        </TabsList>
-        <TabsContent value="rules">
-          <RulesTab />
-        </TabsContent>
-        <TabsContent value="history">
-          <HistoryTab />
-        </TabsContent>
-      </Tabs>
     </div>
-  );
-};
-
-export default AdminAlerts;
+  )
+}

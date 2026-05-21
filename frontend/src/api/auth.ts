@@ -1,22 +1,24 @@
-import client from './client';
-import type { TokenResponse, User } from '../types';
+import { apiClient } from './client'
+import type { LoginRequest, RegisterRequest, AuthResponse, User, ApiResponse } from '@/types'
 
-export async function login(username: string, password: string): Promise<TokenResponse> {
-  const res = await client.post('/auth/login', { username, password });
-  return res.data;
-}
+export const authApi = {
+  login: async (data: LoginRequest): Promise<AuthResponse> => {
+    return await apiClient.post<AuthResponse>('/auth/login', data)
+  },
 
-export async function register(username: string, email: string, password: string) {
-  const res = await client.post('/auth/register', { username, email, password });
-  return res.data;
-}
+  register: async (data: RegisterRequest): Promise<ApiResponse<{ id: number; username: string }>> => {
+    return await apiClient.post('/auth/register', data)
+  },
 
-export async function getMe(): Promise<User> {
-  const res = await client.get('/auth/me');
-  return res.data;
-}
+  refresh: async (refreshToken: string): Promise<AuthResponse> => {
+    return await apiClient.post('/auth/refresh', { refresh_token: refreshToken })
+  },
 
-export async function refreshToken(refresh_token: string): Promise<TokenResponse> {
-  const res = await client.post('/auth/refresh', { refresh_token });
-  return res.data;
+  getMe: async (): Promise<User> => {
+    return await apiClient.get<User>('/auth/me')
+  },
+
+  updateProfile: async (data: { email?: string; password?: string }): Promise<ApiResponse> => {
+    return await apiClient.put('/auth/me', data)
+  },
 }

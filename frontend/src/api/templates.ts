@@ -1,34 +1,31 @@
-import client from './client';
+import { apiClient } from './client'
+import type { Template, ApiResponse } from '@/types'
 
-export interface ServiceTemplate {
-  id: number;
-  name: string;
-  slug: string;
-  description: string;
-  category: string;
-  icon: string;
-  code_template: string;
-  tools_template: any[];
-  resources_template: any[];
-  env_vars_template: Record<string, string>;
-  dependencies: string;
-  is_builtin: boolean;
-  usage_count: number;
-  created_at: string;
-}
+export const templatesApi = {
+  getTemplates: async (params?: { category?: string }): Promise<Template[]> => {
+    return await apiClient.get('/templates', { params })
+  },
 
-export async function listTemplates(category?: string): Promise<ServiceTemplate[]> {
-  const params = category ? { category } : {};
-  const response = await client.get('/templates', { params });
-  return response.data;
-}
+  getTemplate: async (id: number): Promise<Template> => {
+    return await apiClient.get(`/templates/${id}`)
+  },
 
-export async function getTemplate(id: number): Promise<ServiceTemplate> {
-  const response = await client.get(`/templates/${id}`);
-  return response.data;
-}
+  createTemplate: async (data: Omit<Template, 'id' | 'is_builtin' | 'usage_count' | 'created_at'>): Promise<Template> => {
+    return await apiClient.post('/templates', data)
+  },
 
-export async function createFromTemplate(templateId: number, name: string): Promise<any> {
-  const response = await client.post(`/templates/${templateId}/create-service`, { name });
-  return response.data;
+  updateTemplate: async (id: number, data: Partial<Template>): Promise<Template> => {
+    return await apiClient.put(`/templates/${id}`, data)
+  },
+
+  deleteTemplate: async (id: number): Promise<{ message: string }> => {
+    return await apiClient.delete(`/templates/${id}`)
+  },
+
+  createServiceFromTemplate: async (
+    templateId: number,
+    data: { name: string; description: string }
+  ): Promise<{ id: number; name: string; slug: string; status: string; created_at: string; template_name: string }> => {
+    return await apiClient.post(`/templates/${templateId}/create-service`, data)
+  },
 }

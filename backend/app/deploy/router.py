@@ -18,6 +18,8 @@ from app.deploy.runner import (
     remove_container, get_container_status, get_container_logs,
     stream_container_logs, deploy_multi_instance, scale_instances,
     stop_multi_instance, get_instance_status,
+    list_managed_containers, list_managed_images,
+    cleanup_old_images, cleanup_stopped_containers,
 )
 from app.common.exceptions import NotFoundException, ForbiddenException, AppException
 from app.common.responses import ApiResponse
@@ -485,3 +487,78 @@ async def admin_cleanup_containers(_: User = Depends(require_admin)):
         message=f"Cleaned up {len(removed)} stopped container(s)",
         data={"removed": removed},
     )
+
+
+@admin_router.post("/containers/{container_id}/start", response_model=ApiResponse, summary="启动容器", description="启动指定的平台管理容器")
+async def admin_start_container(container_id: str, _: User = Depends(require_admin)):
+    """Start a specific managed container by ID.
+
+    SAFETY: Only starts containers that have our label AND name prefix.
+    """
+    client = get_docker_client()
+    try:
+        container = client.containers.get(container_id)
+    except Exception:
+        client.close()
+        raise NotFoundException("Container not found")
+
+    # Verify it's our container
+    from app.config import settings
+    labels = container.labels or {}
+    if labels.get(settings.MCP_LABEL_KEY) != settings.MCP_LABEL_VALUE:
+        client.close()
+        raise ForbiddenException("Not a platform-managed container")
+
+    container.start()
+    client.close()
+    return ApiResponse(message=f"Container {container_id} started")
+
+
+@admin_router.post("/containers/{container_id}/stop", response_model=ApiResponse, summary="停止容器", description="停止指定的平台管理容器")
+async def admin_stop_container(container_id: str, _: User = Depends(require_admin)):
+    """Stop a specific managed container by ID.
+
+    SAFETY: Only stops containers that have our label AND name prefix.
+    """
+    client = get_docker_client()
+    try:
+        container = client.containers.get(container_id)
+    except Exception:
+        client.close()
+        raise NotFoundException("Container not found")
+
+    # Verify it's our container
+    from app.config import settings
+    labels = container.labels or {}
+    if labels.get(settings.MCP_LABEL_KEY) != settings.MCP_LABEL_VALUE:
+        client.close()
+        raise ForbiddenException("Not a platform-managed container")
+
+    container.stop()
+    client.close()
+    return ApiResponse(message=f"Container {container_id} stopped")
+
+
+@admin_router.delete("/containers/{container_id}", response_model=ApiResponse, summary="删除容器", description="删除指定的平台管理容器")
+async def admin_remove_container(container_id: str, _: User = Depends(require_admin)):
+    """Remove a specific managed container by ID.
+
+    SAFETY: Only removes containers that have our label AND name prefix.
+    """
+    client = get_docker_client()
+    try:
+        container = client.containers.get(container_id)
+    except Exception:
+        client.close()
+        raise NotFoundException("Container not found")
+
+    # Verify it's our container
+    from app.config import settings
+    labels = container.labels or {}
+    if labels.get(settings.MCP_LABEL_KEY) != settings.MCP_LABEL_VALUE:
+        client.close()
+        raise ForbiddenException("Not a platform-managed container")
+
+    container.remove(force=True)
+    client.close()
+    return ApiResponse(message=f"Container {container_id} removed")

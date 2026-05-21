@@ -1,32 +1,56 @@
-import React, { Suspense, lazy } from 'react';
-import { createBrowserRouter, Navigate } from 'react-router-dom';
-import MainLayout from '../components/Layout/MainLayout';
-import ProtectedRoute from '../components/ProtectedRoute';
+import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { Login } from '@/pages/Login'
+import { Register } from '@/pages/Register'
+import { Dashboard } from '@/pages/Dashboard'
+import { ServiceList } from '@/pages/ServiceList'
+import { ServiceDetail } from '@/pages/ServiceDetail'
+import { ServiceCreate } from '@/pages/ServiceCreate'
+import { ServiceEdit } from '@/pages/ServiceEdit'
+import { ServiceTools } from '@/pages/ServiceTools'
+import { ServiceResources } from '@/pages/ServiceResources'
+import { ServiceVersions } from '@/pages/ServiceVersions'
+import { Templates } from '@/pages/Templates'
+import { AdminUsers } from '@/pages/AdminUsers'
+import { AdminAlerts } from '@/pages/AdminAlerts'
+import { AdminDocker } from '@/pages/AdminDocker'
+import { AdminAudit } from '@/pages/AdminAudit'
 
-const Login = lazy(() => import('../pages/Login'));
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const ServiceList = lazy(() => import('../pages/ServiceList'));
-const ServiceDetail = lazy(() => import('../pages/ServiceDetail'));
-const AdminUsers = lazy(() => import('../pages/AdminUsers'));
-const AdminRoles = lazy(() => import('../pages/AdminRoles'));
-const AdminAudit = lazy(() => import('../pages/AdminAudit'));
-const AdminAlerts = lazy(() => import('../pages/AdminAlerts'));
-const Templates = lazy(() => import('../pages/Templates'));
+// Simple auth check
+const isAuthenticated = () => {
+  return localStorage.getItem('access_token') !== null
+}
 
-const LazyPage: React.FC<{ children: React.ReactNode }> = ({ children }) => (
-  <Suspense fallback={
-    <div className="flex items-center justify-center p-12">
-      <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-    </div>
-  }>
-    {children}
-  </Suspense>
-);
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  if (!isAuthenticated()) {
+    return <Navigate to="/login" replace />
+  }
+  return <>{children}</>
+}
 
-const router = createBrowserRouter([
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  if (isAuthenticated()) {
+    return <Navigate to="/dashboard" replace />
+  }
+  return <>{children}</>
+}
+
+export const router = createBrowserRouter([
   {
     path: '/login',
-    element: <Suspense fallback={null}><Login /></Suspense>,
+    element: (
+      <PublicRoute>
+        <Login />
+      </PublicRoute>
+    ),
+  },
+  {
+    path: '/register',
+    element: (
+      <PublicRoute>
+        <Register />
+      </PublicRoute>
+    ),
   },
   {
     path: '/',
@@ -36,17 +60,62 @@ const router = createBrowserRouter([
       </ProtectedRoute>
     ),
     children: [
-      { index: true, element: <Navigate to="/dashboard" replace /> },
-      { path: 'dashboard', element: <LazyPage><Dashboard /></LazyPage> },
-      { path: 'services', element: <LazyPage><ServiceList /></LazyPage> },
-      { path: 'services/:id/:tab?', element: <LazyPage><ServiceDetail /></LazyPage> },
-      { path: 'admin/users', element: <LazyPage><AdminUsers /></LazyPage> },
-      { path: 'admin/roles', element: <LazyPage><AdminRoles /></LazyPage> },
-      { path: 'admin/audit', element: <LazyPage><AdminAudit /></LazyPage> },
-      { path: 'admin/alerts', element: <LazyPage><AdminAlerts /></LazyPage> },
-      { path: 'templates', element: <LazyPage><Templates /></LazyPage> },
+      {
+        index: true,
+        element: <Navigate to="/dashboard" replace />,
+      },
+      {
+        path: 'dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: 'services',
+        element: <ServiceList />,
+      },
+      {
+        path: 'services/new',
+        element: <ServiceCreate />,
+      },
+      {
+        path: 'services/:id',
+        element: <ServiceDetail />,
+      },
+      {
+        path: 'services/:id/edit',
+        element: <ServiceEdit />,
+      },
+      {
+        path: 'services/:id/tools',
+        element: <ServiceTools />,
+      },
+      {
+        path: 'services/:id/resources',
+        element: <ServiceResources />,
+      },
+      {
+        path: 'services/:id/versions',
+        element: <ServiceVersions />,
+      },
+      {
+        path: 'templates',
+        element: <Templates />,
+      },
+      {
+        path: 'admin/users',
+        element: <AdminUsers />,
+      },
+      {
+        path: 'admin/audit',
+        element: <AdminAudit />,
+      },
+      {
+        path: 'admin/alerts',
+        element: <AdminAlerts />,
+      },
+      {
+        path: 'admin/docker',
+        element: <AdminDocker />,
+      },
     ],
   },
-]);
-
-export default router;
+])

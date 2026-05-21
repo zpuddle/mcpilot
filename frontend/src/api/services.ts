@@ -1,138 +1,152 @@
-import client from './client';
-import type { McpService, PaginatedResponse, ApiResponse, ServiceStatus } from '../types';
+import { apiClient } from './client'
+import type {
+  Service,
+  ServiceStats,
+  PaginatedResponse,
+  ApiResponse,
+  Tool,
+  Resource,
+  Version,
+  ServiceCode,
+  ServiceStatus,
+  ServiceLogs,
+} from '@/types'
 
-export async function listServices(page = 1, pageSize = 20, status?: ServiceStatus) {
-  const params: Record<string, unknown> = { page, page_size: pageSize };
-  if (status) params.status = status;
-  const res = await client.get<PaginatedResponse<McpService>>('/services', { params });
-  return res.data;
-}
+export const servicesApi = {
+  getStats: async (): Promise<ServiceStats> => {
+    return await apiClient.get('/services/dashboard/stats')
+  },
 
-export async function getService(id: number): Promise<McpService> {
-  const res = await client.get(`/services/${id}`);
-  return res.data;
-}
+  getServices: async (params?: {
+    page?: number
+    page_size?: number
+    status?: string
+  }): Promise<PaginatedResponse<Service>> => {
+    return await apiClient.get('/services/', { params })
+  },
 
-export async function createService(data: { name: string; description?: string; transport_type?: string }) {
-  const res = await client.post<McpService>('/services', data);
-  return res.data;
-}
+  getService: async (id: number): Promise<Service> => {
+    return await apiClient.get(`/services/${id}`)
+  },
 
-export async function updateService(id: number, data: Record<string, unknown>) {
-  const res = await client.put<McpService>(`/services/${id}`, data);
-  return res.data;
-}
+  createService: async (data: {
+    name: string
+    description: string
+    transport_type: 'sse' | 'stdio'
+  }): Promise<Service> => {
+    return await apiClient.post('/services/', data)
+  },
 
-export async function deleteService(id: number) {
-  const res = await client.delete<ApiResponse>(`/services/${id}`);
-  return res.data;
-}
+  updateService: async (
+    id: number,
+    data: {
+      name?: string
+      description?: string
+      transport_type?: 'sse' | 'stdio'
+      env_vars?: Record<string, string>
+      extra_dependencies?: string
+    }
+  ): Promise<Service> => {
+    return await apiClient.put(`/services/${id}`, data)
+  },
 
-// Code
-export async function getServiceCode(id: number) {
-  const res = await client.get<{ code: string; updated_at: string | null }>(`/services/${id}/code`);
-  return res.data;
-}
+  deleteService: async (id: number): Promise<ApiResponse> => {
+    return await apiClient.delete(`/services/${id}`)
+  },
 
-export async function saveServiceCode(id: number, code: string) {
-  const res = await client.put<ApiResponse>(`/services/${id}/code`, { code });
-  return res.data;
-}
+  getServiceCode: async (id: number): Promise<ServiceCode> => {
+    return await apiClient.get(`/services/${id}/code`)
+  },
 
-export async function validateCode(id: number, code: string) {
-  const res = await client.post<{ valid: boolean; errors: string[]; warnings: string[] }>(
-    `/services/${id}/code/validate`, { code }
-  );
-  return res.data;
-}
+  saveServiceCode: async (id: number, code: string): Promise<ApiResponse> => {
+    return await apiClient.put(`/services/${id}/code`, { code })
+  },
 
-// Deploy & Lifecycle
-export async function deployService(id: number) {
-  const res = await client.post<ApiResponse>(`/services/${id}/deploy`);
-  return res.data;
-}
+  validateServiceCode: async (id: number, code: string): Promise<{ valid: boolean; errors: string[]; warnings: string[] }> => {
+    return await apiClient.post(`/services/${id}/code/validate`, { code })
+  },
 
-export async function startService(id: number) {
-  const res = await client.post<ApiResponse>(`/services/${id}/start`);
-  return res.data;
-}
+  getTools: async (serviceId: number): Promise<Tool[]> => {
+    return await apiClient.get(`/services/${serviceId}/tools`)
+  },
 
-export async function stopService(id: number) {
-  const res = await client.post<ApiResponse>(`/services/${id}/stop`);
-  return res.data;
-}
+  createTool: async (serviceId: number, data: Omit<Tool, 'id' | 'service_id' | 'created_at' | 'updated_at'>): Promise<Tool> => {
+    return await apiClient.post(`/services/${serviceId}/tools`, data)
+  },
 
-export async function restartService(id: number) {
-  const res = await client.post<ApiResponse>(`/services/${id}/restart`);
-  return res.data;
-}
+  updateTool: async (serviceId: number, toolId: number, data: Partial<Tool>): Promise<Tool> => {
+    return await apiClient.put(`/services/${serviceId}/tools/${toolId}`, data)
+  },
 
-export async function getServiceStatus(id: number) {
-  const res = await client.get(`/services/${id}/status`);
-  return res.data;
-}
+  deleteTool: async (serviceId: number, toolId: number): Promise<ApiResponse> => {
+    return await apiClient.delete(`/services/${serviceId}/tools/${toolId}`)
+  },
 
-export async function getServiceLogs(id: number, tail = 100) {
-  const res = await client.get<{ logs: string }>(`/services/${id}/logs`, { params: { tail } });
-  return res.data;
-}
+  getResources: async (serviceId: number): Promise<Resource[]> => {
+    return await apiClient.get(`/services/${serviceId}/resources`)
+  },
 
-export async function removeContainer(id: number) {
-  const res = await client.delete<ApiResponse>(`/services/${id}/container`);
-  return res.data;
-}
+  createResource: async (serviceId: number, data: Omit<Resource, 'id' | 'service_id' | 'created_at'>): Promise<Resource> => {
+    return await apiClient.post(`/services/${serviceId}/resources`, data)
+  },
 
-// Dependencies
-export interface ServiceDependency {
-  id: number;
-  service_id: number;
-  depends_on_id: number;
-  depends_on_name?: string;
-  dependency_type: string;
-  description: string | null;
-  created_at: string;
-}
+  updateResource: async (serviceId: number, resourceId: number, data: Partial<Resource>): Promise<Resource> => {
+    return await apiClient.put(`/services/${serviceId}/resources/${resourceId}`, data)
+  },
 
-export async function getServiceDependencies(serviceId: number): Promise<ServiceDependency[]> {
-  const res = await client.get(`/services/${serviceId}/dependencies`);
-  return res.data.dependencies ?? [];
-}
+  deleteResource: async (serviceId: number, resourceId: number): Promise<ApiResponse> => {
+    return await apiClient.delete(`/services/${serviceId}/resources/${resourceId}`)
+  },
 
-export async function addServiceDependency(serviceId: number, data: {
-  depends_on_id: number;
-  dependency_type?: string;
-  description?: string;
-}): Promise<ServiceDependency> {
-  const res = await client.post(`/services/${serviceId}/dependencies`, data);
-  return res.data;
-}
+  getVersions: async (serviceId: number): Promise<Version[]> => {
+    return await apiClient.get(`/services/${serviceId}/versions/`)
+  },
 
-export async function removeServiceDependency(serviceId: number, depId: number): Promise<void> {
-  await client.delete(`/services/${serviceId}/dependencies/${depId}`);
-}
+  createVersion: async (serviceId: number, changelog: string): Promise<Version> => {
+    return await apiClient.post(`/services/${serviceId}/versions/`, { changelog })
+  },
 
-// Dashboard
-export async function getDashboardStats() {
-  const res = await client.get<{ total: number; running: number; stopped: number; errors: number; building: number }>('/services/dashboard/stats');
-  return res.data;
-}
+  getVersion: async (serviceId: number, versionId: number): Promise<Version> => {
+    return await apiClient.get(`/services/${serviceId}/versions/${versionId}`)
+  },
 
-// Multi-Instance
-export interface ServiceInstance {
-  id: number;
-  service_id: number;
-  instance_index: number;
-  container_id: string | null;
-  internal_port: number;
-  status: string;
-}
+  rollbackToVersion: async (serviceId: number, versionId: number): Promise<ApiResponse> => {
+    return await apiClient.post(`/services/${serviceId}/versions/${versionId}/rollback`)
+  },
 
-export async function scaleService(serviceId: number, replicas: number): Promise<ApiResponse> {
-  const res = await client.put<ApiResponse>(`/services/${serviceId}/scale`, { replicas });
-  return res.data;
-}
+  deployService: async (serviceId: number, force?: boolean): Promise<ApiResponse<{ version: number; port: number; container_id: string }>> => {
+    return await apiClient.post(`/services/${serviceId}/deploy`, null, { params: { force } })
+  },
 
-export async function getServiceInstances(serviceId: number): Promise<ServiceInstance[]> {
-  const res = await client.get<ServiceInstance[]>(`/services/${serviceId}/instances`);
-  return res.data;
+  startService: async (serviceId: number): Promise<ApiResponse> => {
+    return await apiClient.post(`/services/${serviceId}/start`)
+  },
+
+  stopService: async (serviceId: number): Promise<ApiResponse> => {
+    return await apiClient.post(`/services/${serviceId}/stop`)
+  },
+
+  restartService: async (serviceId: number): Promise<ApiResponse> => {
+    return await apiClient.post(`/services/${serviceId}/restart`)
+  },
+
+  getServiceStatus: async (serviceId: number): Promise<ServiceStatus> => {
+    return await apiClient.get(`/services/${serviceId}/status`)
+  },
+
+  getServiceLogs: async (serviceId: number, tail?: number): Promise<ServiceLogs> => {
+    return await apiClient.get(`/services/${serviceId}/logs`, { params: { tail } })
+  },
+
+  deleteContainer: async (serviceId: number): Promise<ApiResponse> => {
+    return await apiClient.delete(`/services/${serviceId}/container`)
+  },
+
+  scaleService: async (serviceId: number, replicas: number): Promise<ApiResponse<{ replicas: number }>> => {
+    return await apiClient.put(`/services/${serviceId}/scale`, { replicas })
+  },
+
+  getInstances: async (serviceId: number): Promise<any[]> => {
+    return await apiClient.get(`/services/${serviceId}/instances`)
+  },
 }

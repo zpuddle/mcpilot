@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.database import get_db, User, McpService, ServiceCode, ServiceStatus
+from app.database.models import DeployLog
 from app.auth.dependencies import get_current_user, require_permissions
 from app.services.schemas import (
     ServiceCreate, ServiceUpdate, ServiceResponse, ServiceListItem,
@@ -45,6 +46,70 @@ async def dashboard_stats(
         "errors": int(row.errors or 0),
         "building": int(row.building or 0),
     }
+
+
+@router.get("/dashboard/recent-activities", summary="最近活动", description="获取仪表盘最近操作活动")
+async def dashboard_recent_activities(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """从 deploy_logs 获取最近活动"""
+    # 从 deploy_logs 获取最近的部署/启动/停止操作
+    deploy_query = (
+        select(DeployLog)
+        .options(selectinload(DeployLog.service))
+        .order_by(DeployLog.created_at.desc())
+        .limit(10)
+    )
+    result = await db.execute(deploy_query)
+    logs = result.scalars().all()
+
+    activities = []
+    for log in logs:
+        # 获取触发用户名
+        username = "system"
+        if log.triggered_by:
+            user_result = await db.execute(select(User).where(User.id == log.triggered_by))
+            trigger_user = user_result.scalar_one_or_none()
+            if trigger_user:
+                username = trigger_user.username
+
+        activities.append({
+            "id": log.id,
+            "type": log.action.value,
+            "service": log.service.name if log.service else "Unknown",
+            "user": username,
+            "status": log.status.value,
+            "time": log.created_at.isoformat() if log.created_at else "",
+        })
+
+    return activities
+
+
+@router.get("/dashboard/recent-services", summary="最近更新服务", description="获取最近更新的服务列表")
+async def dashboard_recent_services(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """按 updated_at 降序获取最近更新的服务"""
+    query = select(McpService).order_by(McpService.updated_at.desc()).limit(5)
+
+    # 非 admin 只看自己的服务
+    if "*" not in current_user.role.permissions:
+        query = query.where(McpService.owner_id == current_user.id)
+
+    result = await db.execute(query)
+    services = result.scalars().all()
+
+    return [
+        {
+            "id": svc.id,
+            "name": svc.name,
+            "status": svc.status.value,
+            "updatedAt": svc.updated_at.isoformat() if svc.updated_at else "",
+        }
+        for svc in services
+    ]
 
 
 def _service_to_response(svc: McpService) -> ServiceResponse:

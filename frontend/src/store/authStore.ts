@@ -1,46 +1,60 @@
-import { create } from 'zustand';
-import type { User } from '../types';
-import { getMe } from '../api/auth';
+import { create } from 'zustand'
+import { apiClient } from '@/api/client'
+import { authApi } from '@/api/auth'
+import type { User, LoginRequest, RegisterRequest } from '@/types'
 
 interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-  loading: boolean;
-  login: (accessToken: string, refreshToken: string) => Promise<void>;
-  logout: () => void;
-  loadUser: () => Promise<void>;
+  user: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  login: (data: LoginRequest) => Promise<void>
+  register: (data: RegisterRequest) => Promise<void>
+  logout: () => void
+  fetchUser: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  isAuthenticated: !!localStorage.getItem('access_token'),
-  loading: false,
+  isAuthenticated: apiClient.isAuthenticated(),
+  isLoading: false,
 
-  login: async (accessToken: string, refreshToken: string) => {
-    localStorage.setItem('access_token', accessToken);
-    localStorage.setItem('refresh_token', refreshToken);
-    set({ isAuthenticated: true });
+  login: async (data: LoginRequest) => {
+    set({ isLoading: true })
     try {
-      const user = await getMe();
-      set({ user });
-    } catch {
-      // ignore
+      const response = await authApi.login(data)
+      apiClient.setTokens(response.access_token, response.refresh_token)
+      const user = await authApi.getMe()
+      set({ user, isAuthenticated: true, isLoading: false })
+    } catch (error) {
+      set({ isLoading: false })
+      throw error
+    }
+  },
+
+  register: async (data: RegisterRequest) => {
+    set({ isLoading: true })
+    try {
+      await authApi.register(data)
+      set({ isLoading: false })
+    } catch (error) {
+      set({ isLoading: false })
+      throw error
     }
   },
 
   logout: () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
-    set({ user: null, isAuthenticated: false });
+    apiClient.clearTokens()
+    set({ user: null, isAuthenticated: false })
   },
 
-  loadUser: async () => {
-    set({ loading: true });
+  fetchUser: async () => {
+    if (!apiClient.isAuthenticated()) return
     try {
-      const user = await getMe();
-      set({ user, isAuthenticated: true, loading: false });
-    } catch {
-      set({ user: null, isAuthenticated: false, loading: false });
+      const user = await authApi.getMe()
+      set({ user, isAuthenticated: true })
+    } catch (error) {
+      apiClient.clearTokens()
+      set({ user: null, isAuthenticated: false })
     }
   },
-}));
+}))

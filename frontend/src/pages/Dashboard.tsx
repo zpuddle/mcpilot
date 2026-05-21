@@ -1,72 +1,232 @@
-import { Card, CardContent } from '@/components/ui/card';
-import { useQuery } from '@tanstack/react-query';
-import { getDashboardStats } from '../api/services';
-import { Server, CheckCircle, PauseCircle, AlertTriangle } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
+import { servicesApi } from '@/api/services'
+import { StatsCardSkeleton } from '@/components/common/Skeleton'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { motion } from 'framer-motion'
+import {
+  Server,
+  Play,
+  Square,
+  AlertTriangle,
+  Plus,
+  Cpu,
+  Activity,
+  Clock,
+  ArrowUpRight,
+  MoreVertical,
+} from 'lucide-react'
+import { formatRelativeTime } from '@/utils/formatters'
 
-const statCards = [
-  {
-    key: 'total',
-    title: 'Total Services',
-    icon: Server,
-    iconBg: 'bg-primary/10',
-    iconColor: 'text-primary',
-  },
-  {
-    key: 'running',
-    title: 'Running',
-    icon: CheckCircle,
-    iconBg: 'bg-green-500/10',
-    iconColor: 'text-green-500',
-  },
-  {
-    key: 'stopped',
-    title: 'Stopped',
-    icon: PauseCircle,
-    iconBg: 'bg-yellow-500/10',
-    iconColor: 'text-yellow-500',
-  },
-  {
-    key: 'errors',
-    title: 'Errors',
-    icon: AlertTriangle,
-    iconBg: 'bg-red-500/10',
-    iconColor: 'text-red-500',
-  },
-];
+// Mock data for demonstration
+const mockActivities = [
+  { id: 1, type: 'deploy', service: 'Weather API', user: 'admin', status: 'success', time: new Date() },
+  { id: 2, type: 'start', service: 'Database', user: 'admin', status: 'success', time: new Date(Date.now() - 3600000) },
+  { id: 3, type: 'stop', service: 'Cache Service', user: 'user1', status: 'success', time: new Date(Date.now() - 7200000) },
+  { id: 4, type: 'deploy', service: 'Auth API', user: 'admin', status: 'failed', time: new Date(Date.now() - 10800000) },
+]
 
-const Dashboard: React.FC = () => {
-  const { data: stats } = useQuery({
+const mockRecentServices = [
+  { id: 1, name: 'Weather API', status: 'running', updatedAt: new Date(Date.now() - 3600000) },
+  { id: 2, name: 'Database', status: 'running', updatedAt: new Date(Date.now() - 7200000) },
+  { id: 3, name: 'Cache Service', status: 'stopped', updatedAt: new Date(Date.now() - 10800000) },
+  { id: 4, name: 'Auth API', status: 'error', updatedAt: new Date(Date.now() - 86400000) },
+]
+
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  color,
+  trend,
+}: {
+  title: string
+  value: number
+  icon: any
+  color: string
+  trend?: string
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className="card p-6 hover:shadow-md transition-shadow"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-sm font-medium text-gray-500">{title}</p>
+          <p className="text-3xl font-bold text-gray-900 mt-2">{value}</p>
+          {trend && (
+            <p className="text-sm text-success-600 mt-1 flex items-center gap-1">
+              <ArrowUpRight className="h-4 w-4" />
+              {trend}
+            </p>
+          )}
+        </div>
+        <div className={cn('h-12 w-12 rounded-xl flex items-center justify-center', color)}>
+          <Icon className="h-6 w-6 text-white" />
+        </div>
+      </div>
+    </motion.div>
+  )
+}
+
+function cn(...classes: string[]) {
+  return classes.filter(Boolean).join(' ')
+}
+
+export function Dashboard() {
+  const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard', 'stats'],
-    queryFn: getDashboardStats,
-  });
+    queryFn: servicesApi.getStats,
+    initialData: {
+      total: 12,
+      running: 8,
+      stopped: 3,
+      error: 1,
+      building: 0,
+    },
+  })
 
   return (
-    <div>
-      <h1 className="text-2xl font-semibold tracking-tight mb-6">Dashboard</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card key={card.key} className="shadow-sm">
-              <CardContent className="flex items-center gap-4 p-5">
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${card.iconBg} ${card.iconColor}`}
+    <div className="space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">仪表盘</h1>
+          <p className="text-gray-500 mt-1">欢迎回来，查看你的服务状态</p>
+        </div>
+        <Link to="/services/new" className="btn-primary">
+          <Plus className="h-4 w-4 mr-2" />
+          创建服务
+        </Link>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {isLoading ? (
+          <>
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+            <StatsCardSkeleton />
+          </>
+        ) : (
+          <>
+            <StatsCard
+              title="总服务数"
+              value={stats.total}
+              icon={Server}
+              color="bg-gradient-to-br from-primary-500 to-primary-600"
+              trend="+2 本月"
+            />
+            <StatsCard
+              title="运行中"
+              value={stats.running}
+              icon={Play}
+              color="bg-gradient-to-br from-success-500 to-success-600"
+            />
+            <StatsCard
+              title="已停止"
+              value={stats.stopped}
+              icon={Square}
+              color="bg-gradient-to-br from-gray-500 to-gray-600"
+            />
+            <StatsCard
+              title="异常"
+              value={stats.error}
+              icon={AlertTriangle}
+              color="bg-gradient-to-br from-danger-500 to-danger-600"
+            />
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">最近服务</h2>
+            <Link to="/services" className="text-primary-600 hover:text-primary-700 text-sm font-medium">
+              查看全部
+            </Link>
+          </div>
+          <div className="card divide-y divide-gray-100">
+            {mockRecentServices.map((service, index) => (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Link
+                  to={`/services/${service.id}`}
+                  className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
                 >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">{card.title}</p>
-                  <p className="text-2xl font-bold tabular-nums">
-                    {(stats as Record<string, number>)?.[card.key] ?? 0}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })}
+                  <div className="flex items-center gap-4">
+                    <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+                      <Cpu className="h-5 w-5 text-primary-600" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{service.name}</p>
+                      <p className="text-sm text-gray-500 flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatRelativeTime(service.updatedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <StatusBadge status={service.status} />
+                    <MoreVertical className="h-4 w-4 text-gray-400" />
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">最近活动</h2>
+          <div className="card p-6">
+            <div className="space-y-6">
+              {mockActivities.map((activity, index) => (
+                <motion.div
+                  key={activity.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex gap-4"
+                >
+                  <div className="flex flex-col items-center">
+                    <div className={cn(
+                      'h-8 w-8 rounded-full flex items-center justify-center',
+                      activity.status === 'success'
+                        ? 'bg-success-100 text-success-600'
+                        : 'bg-danger-100 text-danger-600'
+                    )}>
+                      {activity.type === 'deploy' && <Cpu className="h-4 w-4" />}
+                      {activity.type === 'start' && <Play className="h-4 w-4" />}
+                      {activity.type === 'stop' && <Square className="h-4 w-4" />}
+                    </div>
+                    {index < mockActivities.length - 1 && (
+                      <div className="w-px flex-1 bg-gray-200 mt-2" />
+                    )}
+                  </div>
+                  <div className="flex-1 pb-4">
+                    <p className="text-sm font-medium text-gray-900">
+                      {activity.type === 'deploy' && '部署'}
+                      {activity.type === 'start' && '启动'}
+                      {activity.type === 'stop' && '停止'}
+                      <span className="text-primary-600"> {activity.service}</span>
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {activity.user} · {formatRelativeTime(activity.time)}
+                    </p>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-  );
-};
-
-export default Dashboard;
+  )
+}

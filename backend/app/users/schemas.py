@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class RoleCreate(BaseModel):
@@ -22,9 +22,17 @@ class UserListItem(BaseModel):
     email: str
     role_name: str
     is_active: bool
+    created_at: Optional[str] = None
 
     class Config:
         from_attributes = True
+
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+    role_id: int
 
 
 class UserRoleUpdate(BaseModel):

@@ -1,55 +1,44 @@
-export interface User {
-  id: number;
-  username: string;
-  email: string;
-  role_name: string;
-  permissions: string[];
-  is_active: boolean;
-}
-
-export interface TokenResponse {
-  access_token: string;
-  refresh_token: string;
-  token_type: string;
-}
-
-export interface McpService {
+// 服务相关类型
+export interface Service {
   id: number;
   name: string;
   slug: string;
   description: string;
-  owner_id: number;
-  owner_name: string;
-  status: ServiceStatus;
-  transport_type: TransportType;
+  status: 'draft' | 'building' | 'running' | 'stopped' | 'error';
+  transport_type: 'sse' | 'stdio';
   port: number | null;
-  container_id: string | null;
-  image_tag: string | null;
   current_version: number;
-  replicas: number;
-  env_vars: Record<string, string>;
-  extra_dependencies: string;
+  owner_name: string;
   created_at: string;
   updated_at: string;
+  env_vars?: Record<string, string>;
+  extra_dependencies?: string;
 }
 
-export type ServiceStatus = 'draft' | 'building' | 'running' | 'stopped' | 'error';
-export type TransportType = 'sse' | 'streamable_http' | 'both';
+export interface ServiceStats {
+  total: number;
+  running: number;
+  stopped: number;
+  error: number;
+  building: number;
+}
 
-export interface ServiceTool {
+// 工具相关类型
+export interface Tool {
   id: number;
   service_id: number;
   name: string;
   description: string;
   handler_name: string;
-  input_schema: Record<string, unknown>;
-  output_schema: Record<string, unknown>;
+  input_schema: Record<string, any>;
+  output_schema: Record<string, any>;
   is_enabled: boolean;
   created_at: string;
   updated_at: string;
 }
 
-export interface ServiceResource {
+// 资源相关类型
+export interface Resource {
   id: number;
   service_id: number;
   uri_template: string;
@@ -61,34 +50,90 @@ export interface ServiceResource {
   created_at: string;
 }
 
-export interface ServiceVersion {
+// 版本相关类型
+export interface Version {
   id: number;
   service_id: number;
   version_tag: string;
   changelog: string;
-  created_by: number | null;
+  created_by: number;
   created_at: string;
   code_snapshot?: string;
-  tools_snapshot?: unknown[];
-  config_snapshot?: Record<string, unknown>;
 }
 
-export interface DeployLog {
+// 用户相关类型
+export interface User {
   id: number;
-  action: string;
-  status: string;
-  log_output: string;
-  triggered_by: number | null;
+  username: string;
+  email: string;
+  role_name: string;
+  is_active: boolean;
+  permissions: string[];
+}
+
+// 通知相关类型
+export interface Notification {
+  id: number;
+  type: 'info' | 'success' | 'warning' | 'error';
+  title: string;
+  message: string;
+  read: boolean;
   created_at: string;
 }
 
-export interface ApiResponse<T = unknown> {
+// 活动相关类型
+export interface Activity {
+  id: number;
+  type: 'deploy' | 'start' | 'stop' | 'restart' | 'create' | 'update' | 'delete';
+  service_id: number;
+  service_name: string;
+  user_id: number;
+  user_name: string;
+  status: 'success' | 'failed' | 'pending';
+  created_at: string;
+}
+
+// 模板相关类型
+export interface Template {
+  id: number;
+  name: string;
+  slug: string;
+  description: string;
+  category: string;
+  icon: string;
+  code_template: string;
+  tools_template: any[];
+  resources_template: any[];
+  env_vars_template: Record<string, any>;
+  dependencies: string;
+  is_builtin: boolean;
+  author_id: number;
+  usage_count: number;
+  created_at: string;
+}
+
+// 审计日志类型
+export interface AuditLog {
+  id: number;
+  user_id: number;
+  username: string;
+  action: string;
+  resource_type: string;
+  resource_id: number;
+  resource_name: string;
+  detail: string;
+  ip_address?: string;
+  created_at: string;
+}
+
+// API响应类型
+export interface ApiResponse<T = any> {
   success: boolean;
   message: string;
   data?: T;
 }
 
-export interface PaginatedResponse<T = unknown> {
+export interface PaginatedResponse<T = any> {
   success: boolean;
   message: string;
   data: T[];
@@ -97,8 +142,40 @@ export interface PaginatedResponse<T = unknown> {
   page_size: number;
 }
 
-export interface Role {
-  id: number;
-  name: string;
-  permissions: string[];
+// 认证相关类型
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+}
+
+export interface AuthResponse {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+}
+
+// 服务代码类型
+export interface ServiceCode {
+  code: string;
+  updated_at: string;
+}
+
+// 服务部署状态
+export interface ServiceStatus {
+  service_status: string;
+  container_status: string;
+  port?: number;
+  image_tag?: string;
+  version?: number;
+}
+
+// 服务日志
+export interface ServiceLogs {
+  logs: string;
 }
