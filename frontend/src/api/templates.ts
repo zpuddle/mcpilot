@@ -1,5 +1,5 @@
 import { apiClient } from './client'
-import type { Template, ApiResponse } from '@/types'
+import type { Template } from '@/types'
 
 export const templatesApi = {
   getTemplates: async (params?: { category?: string }): Promise<Template[]> => {
