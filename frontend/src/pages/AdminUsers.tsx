@@ -1,61 +1,55 @@
 import { useState } from 'react'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   Plus,
   Search,
   Users,
-  User,
-  Mail,
   Shield,
-  MoreVertical,
   Edit,
   Trash2,
   Ban,
 } from 'lucide-react'
 import { formatDate } from '@/utils/formatters'
-
-const mockUsers = [
-  {
-    id: 1,
-    username: 'admin',
-    email: 'admin@example.com',
-    role_name: 'admin',
-    is_active: true,
-    created_at: new Date(Date.now() - 86400000 * 90).toISOString(),
-    last_login: new Date(Date.now() - 3600000).toISOString(),
-  },
-  {
-    id: 2,
-    username: 'user1',
-    email: 'user1@example.com',
-    role_name: 'user',
-    is_active: true,
-    created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
-    last_login: new Date(Date.now() - 86400000 * 2).toISOString(),
-  },
-  {
-    id: 3,
-    username: 'user2',
-    email: 'user2@example.com',
-    role_name: 'user',
-    is_active: false,
-    created_at: new Date(Date.now() - 86400000 * 30).toISOString(),
-    last_login: null,
-  },
-]
+import { usersApi } from '@/api/admin'
 
 export function AdminUsers() {
   const [search, setSearch] = useState('')
+  const queryClient = useQueryClient()
 
-  const filteredUsers = mockUsers.filter((user) =>
+  const { data: users = [], isLoading } = useQuery({
+    queryKey: ['admin', 'users'],
+    queryFn: usersApi.getUsers,
+  })
+
+  const toggleStatusMutation = useMutation({
+    mutationFn: ({ userId, isActive }: { userId: number; isActive: boolean }) =>
+      usersApi.updateUserStatus(userId, isActive),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      toast.success(variables.isActive ? '用户已启用' : '用户已禁用')
+    },
+    onError: () => {
+      toast.error('操作失败')
+    },
+  })
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: number) => usersApi.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
+      toast.success('用户已删除')
+    },
+    onError: () => {
+      toast.error('删除失败')
+    },
+  })
+
+  const filteredUsers = users.filter((user) =>
     user.username.toLowerCase().includes(search.toLowerCase()) ||
     user.email.toLowerCase().includes(search.toLowerCase())
   )
-
-  const handleAction = (action: string, username: string) => {
-    toast.success(`${action} "${username}"`)
-  }
 
   return (
     <div className="space-y-6">
@@ -96,9 +90,6 @@ export function AdminUsers() {
                   状态
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  最后登录
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   创建时间
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -107,91 +98,97 @@ export function AdminUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {filteredUsers.map((user, index) => (
-                <motion.tr
-                  key={user.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="hover:bg-gray-50"
-                >
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-semibold">
-                        {user.username[0].toUpperCase()}
+              {isLoading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
+                    加载中...
+                  </td>
+                </tr>
+              ) : (
+                filteredUsers.map((user, index) => (
+                  <motion.tr
+                    key={user.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="hover:bg-gray-50"
+                  >
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-3">
+                        <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-semibold">
+                          {user.username[0].toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="font-medium text-gray-900">{user.username}</div>
+                          <div className="text-sm text-gray-500">{user.email}</div>
+                        </div>
                       </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{user.username}</div>
-                        <div className="text-sm text-gray-500">{user.email}</div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.role_name === 'admin'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-gray-100 text-gray-700'
+                      }`}>
+                        <Shield className="h-3 w-3 mr-1" />
+                        {user.role_name}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        user.is_active
+                          ? 'bg-green-100 text-green-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {user.is_active ? '活跃' : '禁用'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                      {user.created_at ? formatDate(user.created_at) : '-'}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
+                      <div className="flex items-center justify-end gap-2">
+                        {user.is_active ? (
+                          <button
+                            onClick={() => toggleStatusMutation.mutate({ userId: user.id, isActive: false })}
+                            className="p-2 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"
+                            title="禁用"
+                          >
+                            <Ban className="h-4 w-4" />
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleStatusMutation.mutate({ userId: user.id, isActive: true })}
+                            className="p-2 text-green-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                            title="启用"
+                          >
+                            <Users className="h-4 w-4" />
+                          </button>
+                        )}
+                        {user.role_name !== 'admin' && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`确定要删除用户 "${user.username}" 吗？`)) {
+                                deleteUserMutation.mutate(user.id)
+                              }
+                            }}
+                            className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                            title="删除"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.role_name === 'admin'
-                        ? 'bg-purple-100 text-purple-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      <Shield className="h-3 w-3 mr-1" />
-                      {user.role_name}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      user.is_active
-                        ? 'bg-green-100 text-green-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {user.is_active ? '活跃' : '禁用'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.last_login ? formatDate(user.last_login) : '从未'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {formatDate(user.created_at)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => handleAction('编辑', user.username)}
-                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      {user.is_active ? (
-                        <button
-                          onClick={() => handleAction('禁用', user.username)}
-                          className="p-2 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"
-                        >
-                          <Ban className="h-4 w-4" />
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => handleAction('启用', user.username)}
-                          className="p-2 text-green-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                        >
-                          <Users className="h-4 w-4" />
-                        </button>
-                      )}
-                      {user.role_name !== 'admin' && (
-                        <button
-                          onClick={() => handleAction('删除', user.username)}
-                          className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
+                    </td>
+                  </motion.tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
       </div>
 
-      {filteredUsers.length === 0 && (
+      {!isLoading && filteredUsers.length === 0 && (
         <div className="card p-12 text-center">
           <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到用户</h3>

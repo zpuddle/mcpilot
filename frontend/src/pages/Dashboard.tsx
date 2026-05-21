@@ -18,21 +18,6 @@ import {
 } from 'lucide-react'
 import { formatRelativeTime } from '@/utils/formatters'
 
-// Mock data for demonstration
-const mockActivities = [
-  { id: 1, type: 'deploy', service: 'Weather API', user: 'admin', status: 'success', time: new Date() },
-  { id: 2, type: 'start', service: 'Database', user: 'admin', status: 'success', time: new Date(Date.now() - 3600000) },
-  { id: 3, type: 'stop', service: 'Cache Service', user: 'user1', status: 'success', time: new Date(Date.now() - 7200000) },
-  { id: 4, type: 'deploy', service: 'Auth API', user: 'admin', status: 'failed', time: new Date(Date.now() - 10800000) },
-]
-
-const mockRecentServices = [
-  { id: 1, name: 'Weather API', status: 'running', updatedAt: new Date(Date.now() - 3600000) },
-  { id: 2, name: 'Database', status: 'running', updatedAt: new Date(Date.now() - 7200000) },
-  { id: 3, name: 'Cache Service', status: 'stopped', updatedAt: new Date(Date.now() - 10800000) },
-  { id: 4, name: 'Auth API', status: 'error', updatedAt: new Date(Date.now() - 86400000) },
-]
-
 function StatsCard({
   title,
   value,
@@ -80,13 +65,16 @@ export function Dashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard', 'stats'],
     queryFn: servicesApi.getStats,
-    initialData: {
-      total: 12,
-      running: 8,
-      stopped: 3,
-      error: 1,
-      building: 0,
-    },
+  })
+
+  const { data: recentServices = [] } = useQuery({
+    queryKey: ['dashboard', 'recent-services'],
+    queryFn: servicesApi.getRecentServices,
+  })
+
+  const { data: recentActivities = [] } = useQuery({
+    queryKey: ['dashboard', 'recent-activities'],
+    queryFn: servicesApi.getRecentActivities,
   })
 
   return (
@@ -114,26 +102,25 @@ export function Dashboard() {
           <>
             <StatsCard
               title="总服务数"
-              value={stats.total}
+              value={stats?.total ?? 0}
               icon={Server}
               color="bg-gradient-to-br from-primary-500 to-primary-600"
-              trend="+2 本月"
             />
             <StatsCard
               title="运行中"
-              value={stats.running}
+              value={stats?.running ?? 0}
               icon={Play}
               color="bg-gradient-to-br from-success-500 to-success-600"
             />
             <StatsCard
               title="已停止"
-              value={stats.stopped}
+              value={stats?.stopped ?? 0}
               icon={Square}
               color="bg-gradient-to-br from-gray-500 to-gray-600"
             />
             <StatsCard
               title="异常"
-              value={stats.error}
+              value={stats?.error ?? 0}
               icon={AlertTriangle}
               color="bg-gradient-to-br from-danger-500 to-danger-600"
             />
@@ -150,7 +137,7 @@ export function Dashboard() {
             </Link>
           </div>
           <div className="card divide-y divide-gray-100">
-            {mockRecentServices.map((service, index) => (
+            {recentServices.map((service, index) => (
               <motion.div
                 key={service.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -169,7 +156,7 @@ export function Dashboard() {
                       <p className="font-medium text-gray-900">{service.name}</p>
                       <p className="text-sm text-gray-500 flex items-center gap-1">
                         <Clock className="h-3 w-3" />
-                        {formatRelativeTime(service.updatedAt)}
+                        {service.updatedAt ? formatRelativeTime(service.updatedAt) : ''}
                       </p>
                     </div>
                   </div>
@@ -187,7 +174,7 @@ export function Dashboard() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">最近活动</h2>
           <div className="card p-6">
             <div className="space-y-6">
-              {mockActivities.map((activity, index) => (
+              {recentActivities.map((activity, index) => (
                 <motion.div
                   key={activity.id}
                   initial={{ opacity: 0, x: 20 }}
@@ -206,7 +193,7 @@ export function Dashboard() {
                       {activity.type === 'start' && <Play className="h-4 w-4" />}
                       {activity.type === 'stop' && <Square className="h-4 w-4" />}
                     </div>
-                    {index < mockActivities.length - 1 && (
+                    {index < recentActivities.length - 1 && (
                       <div className="w-px flex-1 bg-gray-200 mt-2" />
                     )}
                   </div>
@@ -218,7 +205,7 @@ export function Dashboard() {
                       <span className="text-primary-600"> {activity.service}</span>
                     </p>
                     <p className="text-xs text-gray-500 mt-1">
-                      {activity.user} · {formatRelativeTime(activity.time)}
+                      {activity.user} · {activity.time ? formatRelativeTime(activity.time) : ''}
                     </p>
                   </div>
                 </motion.div>

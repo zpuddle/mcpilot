@@ -17,6 +17,26 @@ export const servicesApi = {
     return await apiClient.get('/services/dashboard/stats')
   },
 
+  getRecentActivities: async (): Promise<{
+    id: number
+    type: string
+    service: string
+    user: string
+    status: string
+    time: string
+  }[]> => {
+    return await apiClient.get('/services/dashboard/recent-activities')
+  },
+
+  getRecentServices: async (): Promise<{
+    id: number
+    name: string
+    status: string
+    updatedAt: string
+  }[]> => {
+    return await apiClient.get('/services/dashboard/recent-services')
+  },
+
   getServices: async (params?: {
     page?: number
     page_size?: number
