@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
@@ -214,7 +214,7 @@ export function Templates() {
       {showCreateModal && (
         <TemplateCreateModal
           onClose={() => setShowCreateModal(false)}
-          onSubmit={(data) => createMutation.mutate(data)}
+          onSubmit={(data: any) => createMutation.mutate(data)}
           isLoading={createMutation.isPending}
         />
       )}
@@ -234,7 +234,7 @@ export function Templates() {
         <UseTemplateModal
           templateId={showUseTemplateModal}
           onClose={() => setShowUseTemplateModal(null)}
-          onSubmit={(data) => {
+          onSubmit={(data: any) => {
             useTemplateMutation.mutate({ templateId: showUseTemplateModal, data })
             setShowUseTemplateModal(null)
           }}
@@ -497,7 +497,7 @@ function TemplateDetailModal({ template, onClose, onUseTemplate }: any) {
   )
 }
 
-function UseTemplateModal({ templateId, onClose, onSubmit, isLoading }: any) {
+function UseTemplateModal({ onClose, onSubmit, isLoading }: any) {
   const [formData, setFormData] = useState({
     name: '',
     description: '',

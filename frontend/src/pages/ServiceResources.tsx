@@ -13,9 +13,6 @@ import {
   Database,
   FileText,
   Link,
-  Eye,
-  ToggleLeft,
-  ToggleRight,
 } from 'lucide-react'
 import { servicesApi } from '@/api/services'
 import type { Resource } from '@/types'
@@ -31,7 +28,7 @@ export function ServiceResources() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    uri: '',
+    uri_template: '',
     mime_type: '',
     handler_name: '',
     is_enabled: true,
@@ -93,7 +90,7 @@ export function ServiceResources() {
     setFormData({
       name: '',
       description: '',
-      uri: '',
+      uri_template: '',
       mime_type: '',
       handler_name: '',
       is_enabled: true,
@@ -106,7 +103,7 @@ export function ServiceResources() {
     setFormData({
       name: resource.name,
       description: resource.description,
-      uri: resource.uri,
+      uri_template: resource.uri_template,
       mime_type: resource.mime_type,
       handler_name: resource.handler_name,
       is_enabled: resource.is_enabled,
@@ -240,8 +237,8 @@ export function ServiceResources() {
                 <div className="flex items-center gap-2">
                   <Link className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-500">URI:</span>
-                  <span className="text-gray-900 font-mono truncate" title={resource.uri}>
-                    {resource.uri}
+                  <span className="text-gray-900 font-mono truncate" title={resource.uri_template}>
+                    {resource.uri_template}
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
@@ -326,8 +323,8 @@ export function ServiceResources() {
                 </label>
                 <input
                   type="text"
-                  value={formData.uri}
-                  onChange={(e) => setFormData({ ...formData, uri: e.target.value })}
+                  value={formData.uri_template}
+                  onChange={(e) => setFormData({ ...formData, uri_template: e.target.value })}
                   placeholder="例如: file:///path/to/config.json"
                   className="input w-full"
                   required

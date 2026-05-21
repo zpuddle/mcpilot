@@ -58,7 +58,7 @@ export function ServiceEdit() {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    transport_type: 'sse' as const,
+    transport_type: 'sse' as 'sse' | 'stdio',
     code: '',
     env_vars: [{ key: '', value: '' }],
     extra_dependencies: '',
@@ -418,13 +418,13 @@ export function ServiceEdit() {
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       容器ID
                     </label>
-                    <p className="text-sm text-gray-500 font-mono">{service.container_id || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 font-mono">{(service as any).container_id || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       镜像标签
                     </label>
-                    <p className="text-sm text-gray-500 font-mono">{service.image_tag || 'N/A'}</p>
+                    <p className="text-sm text-gray-500 font-mono">{(service as any).image_tag || 'N/A'}</p>
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -7,7 +7,6 @@ import {
   Search,
   Users,
   Shield,
-  Edit,
   Trash2,
   Ban,
 } from 'lucide-react'

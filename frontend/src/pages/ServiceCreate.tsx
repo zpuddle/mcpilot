@@ -1,12 +1,11 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useMutation, useQuery } from '@tanstack/react-query'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useMutation } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
 import {
   ArrowLeft,
   Save,
-  Play,
   Code2,
   Settings,
   Database,
@@ -40,7 +39,6 @@ if __name__ == "__main__":
 `
 
 export function ServiceCreate() {
-  const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'basic' | 'code' | 'config'>('basic')
 

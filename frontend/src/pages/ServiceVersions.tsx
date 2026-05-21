@@ -10,11 +10,9 @@ import {
   RotateCcw,
   Eye,
   Code,
-  Settings,
   Calendar,
 } from 'lucide-react'
 import { servicesApi } from '@/api/services'
-import type { Version } from '@/types'
 
 export function ServiceVersions() {
   const { id } = useParams()
@@ -37,7 +35,7 @@ export function ServiceVersions() {
     enabled: !!serviceId,
   })
 
-  const { data: selectedVersion, isLoading: versionDetailLoading } = useQuery({
+  const { data: selectedVersion } = useQuery({
     queryKey: ['version', serviceId, showVersionDetail],
     queryFn: () => servicesApi.getVersion(serviceId, showVersionDetail!),
     enabled: !!serviceId && !!showVersionDetail,
@@ -261,26 +259,14 @@ export function ServiceVersions() {
                 </div>
               )}
 
-              <div>
-                <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                  <Code className="h-4 w-4" />
-                  代码快照
-                </h3>
-                <div className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">
-                  <pre className="text-sm">{selectedVersion.code_snapshot || '无代码快照'}</pre>
-                </div>
-              </div>
-
-              {selectedVersion.config_snapshot && Object.keys(selectedVersion.config_snapshot).length > 0 && (
+              {selectedVersion.code_snapshot && (
                 <div>
                   <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    配置快照
+                    <Code className="h-4 w-4" />
+                    代码快照
                   </h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <pre className="text-sm text-gray-700">
-                      {JSON.stringify(selectedVersion.config_snapshot, null, 2)}
-                    </pre>
+                  <div className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">
+                    <pre className="text-sm">{selectedVersion.code_snapshot}</pre>
                   </div>
                 </div>
               )}

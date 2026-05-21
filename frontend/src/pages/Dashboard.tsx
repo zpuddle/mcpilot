@@ -11,7 +11,6 @@ import {
   AlertTriangle,
   Plus,
   Cpu,
-  Activity,
   Clock,
   ArrowUpRight,
   MoreVertical,

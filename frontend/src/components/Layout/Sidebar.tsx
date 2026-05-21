@@ -7,7 +7,6 @@ import {
   Server,
   BookOpen,
   Users,
-  Settings,
   LogOut,
   Menu,
   X,

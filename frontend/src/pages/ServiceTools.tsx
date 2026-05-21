@@ -8,7 +8,6 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye,
   Save,
   X,
   Code,

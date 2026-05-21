@@ -2,9 +2,15 @@ import { Outlet, Link, useLocation } from 'react-router-dom'
 import { Sidebar } from './Sidebar'
 import { Menu, Home, ChevronRight } from 'lucide-react'
 import { useUIStore } from '@/store/uiStore'
-import { useAuthStore } from '@/store/authStore'
 
-const breadcrumbMap: Record<string, { label: string; path?: string }[]> = {
+interface BreadcrumbItem {
+  label: string
+  path?: string
+  icon?: React.ComponentType<any>
+  isLast?: boolean
+}
+
+const breadcrumbMap: Record<string, BreadcrumbItem[]> = {
   '/dashboard': [{ label: '仪表盘', icon: Home }],
   '/services': [{ label: '服务', icon: Home }, { label: '服务列表' }],
   '/services/new': [{ label: '服务', icon: Home }, { label: '服务列表', path: '/services' }, { label: '创建服务' }],
@@ -18,15 +24,12 @@ const breadcrumbMap: Record<string, { label: string; path?: string }[]> = {
 export function MainLayout() {
   const toggleSidebar = useUIStore((state) => state.toggleSidebar)
   const location = useLocation()
-  const user = useAuthStore((state) => state.user)
 
-  const getBreadcrumbs = () => {
+  const getBreadcrumbs = (): BreadcrumbItem[] => {
     const pathSegments = location.pathname.split('/').filter(Boolean)
-    const breadcrumbs: Array<{ label: string; path?: string; isLast?: boolean }> = []
+    const breadcrumbs: BreadcrumbItem[] = []
 
     if (location.pathname.startsWith('/services/') && pathSegments.length >= 2) {
-      const serviceId = pathSegments[1]
-      const basePath = `/services/${serviceId}`
       const action = pathSegments[2]
 
       breadcrumbs.push({ label: '服务', icon: Home, path: '/services' })
