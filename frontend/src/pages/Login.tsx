@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Cpu, Eye, EyeOff, Lock, User } from 'lucide-react'
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
+import { useI18n } from '@/i18n'
 
 export function Login() {
   const [showPassword, setShowPassword] = useState(false)
@@ -11,20 +13,24 @@ export function Login() {
   const login = useAuthStore((state) => state.login)
   const isLoading = useAuthStore((state) => state.isLoading)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       await login(formData)
-      toast.success('登录成功')
+      toast.success(t('auth.loginSuccess'))
       navigate('/dashboard')
     } catch (error) {
-      toast.error('登录失败，请检查用户名和密码')
+      toast.error(t('auth.loginError'))
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher compact />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -35,15 +41,15 @@ export function Login() {
           <div className="inline-flex items-center justify-center h-20 w-20 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl shadow-lg mb-4">
             <Cpu className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">欢迎回来</h1>
-          <p className="text-gray-500 mt-2">登录 MCPilot 继续管理你的服务</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.welcomeBack')}</h1>
+          <p className="text-gray-500 mt-2">{t('auth.loginSubtitle')}</p>
         </div>
 
         <div className="card p-8 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                用户名
+                {t('auth.username')}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -54,7 +60,7 @@ export function Login() {
                     setFormData({ ...formData, username: e.target.value })
                   }
                   className="input pl-10"
-                  placeholder="请输入用户名"
+                  placeholder={t('auth.usernamePlaceholder')}
                   required
                 />
               </div>
@@ -62,7 +68,7 @@ export function Login() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                密码
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -73,7 +79,7 @@ export function Login() {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   className="input pl-10 pr-10"
-                  placeholder="请输入密码"
+                  placeholder={t('auth.passwordPlaceholder')}
                   required
                 />
                 <button
@@ -95,18 +101,18 @@ export function Login() {
               disabled={isLoading}
               className="btn-primary w-full py-3 text-base"
             >
-              {isLoading ? '登录中...' : '登录'}
+              {isLoading ? t('auth.loggingIn') : t('auth.login')}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-500 text-sm">
-              还没有账号？{' '}
+              {t('auth.noAccount')}{' '}
               <Link
                 to="/register"
                 className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
               >
-                立即注册
+                {t('auth.registerNow')}
               </Link>
             </p>
           </div>
@@ -115,7 +121,7 @@ export function Login() {
         <div className="mt-8 text-center">
           <div className="flex items-center justify-center gap-2 text-gray-400 text-sm">
             <span className="h-px w-16 bg-gray-200" />
-            <span>专业的 MCP 服务管理平台</span>
+            <span>{t('app.professionalTagline')}</span>
             <span className="h-px w-16 bg-gray-200" />
           </div>
         </div>

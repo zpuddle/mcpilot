@@ -1,5 +1,7 @@
 """Test fixtures for MCPilot backend integration tests."""
 import os
+import sys
+from pathlib import Path
 
 # Must set environment variables BEFORE importing any app module
 # because app.config.Settings() is evaluated at module import time.
@@ -7,6 +9,7 @@ os.environ.setdefault("SECRET_KEY", "test-secret-key-for-testing")
 os.environ.setdefault("ADMIN_PASSWORD", "testadmin123")
 os.environ.setdefault("ADMIN_USERNAME", "admin")
 os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///:memory:")
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest
 from httpx import AsyncClient, ASGITransport
@@ -103,6 +106,13 @@ async def client():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
+
+
+@pytest.fixture
+async def db_session():
+    """Database session bound to the shared in-memory test database."""
+    async with TestSessionLocal() as session:
+        yield session
 
 
 @pytest.fixture

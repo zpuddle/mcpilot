@@ -14,10 +14,12 @@ import {
   Terminal,
 } from 'lucide-react'
 import { dockerApi } from '@/api/admin'
+import { useI18n } from '@/i18n'
 
 export function AdminDocker() {
   const [search, setSearch] = useState('')
   const queryClient = useQueryClient()
+  const { t } = useI18n()
 
   const { data: containersData, isLoading, refetch } = useQuery({
     queryKey: ['admin', 'docker', 'containers'],
@@ -30,27 +32,27 @@ export function AdminDocker() {
     mutationFn: (containerId: string) => dockerApi.startContainer(containerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'docker'] })
-      toast.success('容器已启动')
+      toast.success(t('admin.docker.started'))
     },
-    onError: () => toast.error('启动失败'),
+    onError: () => toast.error(t('admin.docker.startFailed')),
   })
 
   const stopMutation = useMutation({
     mutationFn: (containerId: string) => dockerApi.stopContainer(containerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'docker'] })
-      toast.success('容器已停止')
+      toast.success(t('admin.docker.stopped'))
     },
-    onError: () => toast.error('停止失败'),
+    onError: () => toast.error(t('admin.docker.stopFailed')),
   })
 
   const removeMutation = useMutation({
     mutationFn: (containerId: string) => dockerApi.removeContainer(containerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'docker'] })
-      toast.success('容器已删除')
+      toast.success(t('admin.docker.deleted'))
     },
-    onError: () => toast.error('删除失败'),
+    onError: () => toast.error(t('admin.docker.deleteFailed')),
   })
 
   const filteredContainers = containers.filter((container) =>
@@ -58,7 +60,7 @@ export function AdminDocker() {
     container.image.toLowerCase().includes(search.toLowerCase())
   )
 
-  const runningCount = containers.filter((c) => c.status === 'running').length
+  const runningCount = containers.filter((container) => container.status === 'running').length
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -75,13 +77,13 @@ export function AdminDocker() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Docker 管理</h1>
-          <p className="text-gray-500 mt-1">管理服务容器和资源</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.docker.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('admin.docker.subtitle')}</p>
         </div>
         <div className="flex gap-2">
           <button className="btn-secondary" onClick={() => refetch()}>
             <RefreshCw className="h-4 w-4 mr-2" />
-            刷新
+            {t('common.refresh')}
           </button>
         </div>
       </div>
@@ -93,7 +95,7 @@ export function AdminDocker() {
               <Cpu className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">运行容器</p>
+              <p className="text-sm text-gray-500">{t('admin.docker.runningContainers')}</p>
               <p className="text-2xl font-bold text-gray-900">{runningCount}</p>
             </div>
           </div>
@@ -104,7 +106,7 @@ export function AdminDocker() {
               <HardDrive className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">总容器</p>
+              <p className="text-sm text-gray-500">{t('admin.docker.totalContainers')}</p>
               <p className="text-2xl font-bold text-gray-900">{containers.length}</p>
             </div>
           </div>
@@ -115,8 +117,10 @@ export function AdminDocker() {
               <Activity className="h-6 w-6" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">总体资源</p>
-              <p className="text-2xl font-bold text-gray-900">{isLoading ? '...' : '健康'}</p>
+              <p className="text-sm text-gray-500">{t('admin.docker.overallResources')}</p>
+              <p className="text-2xl font-bold text-gray-900">
+                {isLoading ? '...' : t('admin.docker.healthy')}
+              </p>
             </div>
           </div>
         </div>
@@ -129,16 +133,16 @@ export function AdminDocker() {
           </div>
           <input
             type="text"
-            placeholder="搜索容器..."
+            placeholder={t('admin.docker.searchPlaceholder')}
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(event) => setSearch(event.target.value)}
             className="input pl-10"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="card p-12 text-center text-gray-500">加载中...</div>
+        <div className="card p-12 text-center text-gray-500">{t('common.loading')}</div>
       ) : (
         <div className="space-y-4">
           {filteredContainers.map((container, index) => (
@@ -175,7 +179,7 @@ export function AdminDocker() {
                       className="btn-success py-2 text-sm"
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      启动
+                      {t('actions.start')}
                     </button>
                   ) : container.status === 'running' ? (
                     <button
@@ -184,20 +188,24 @@ export function AdminDocker() {
                       className="btn-secondary py-2 text-sm"
                     >
                       <Square className="h-4 w-4 mr-2" />
-                      停止
+                      {t('actions.stop')}
                     </button>
                   ) : null}
-                  <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                  <button
+                    className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                    aria-label={t('common.details')}
+                  >
                     <Settings className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => {
-                      if (confirm(`确定要删除容器 "${container.name}" 吗？`)) {
+                      if (confirm(t('admin.docker.confirmDelete', { name: container.name }))) {
                         removeMutation.mutate(container.id)
                       }
                     }}
                     disabled={removeMutation.isPending}
                     className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    aria-label={t('common.delete')}
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
@@ -211,8 +219,8 @@ export function AdminDocker() {
       {!isLoading && filteredContainers.length === 0 && (
         <div className="card p-12 text-center">
           <Terminal className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到容器</h3>
-          <p className="text-gray-500">尝试调整搜索条件</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('admin.docker.emptyTitle')}</h3>
+          <p className="text-gray-500">{t('common.searchEmpty')}</p>
         </div>
       )}
     </div>

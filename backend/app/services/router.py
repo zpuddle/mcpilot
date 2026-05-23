@@ -18,85 +18,60 @@ from app.common.responses import ApiResponse, PaginatedResponse
 router = APIRouter(prefix="/services", tags=["services"])
 
 
-@router.get("/dashboard/stats")
-async def dashboard_stats(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """获取仪表板统计数据"""
+def _can_view_all_services(user: User) -> bool:
+    return user.role.name == "admin" or "*" in (user.role.permissions or [])
+
+
+def _scope_services_for_user(query, user: User):
+    if _can_view_all_services(user):
+        return query
+    return query.where(McpService.owner_id == user.id)
+
+
+def _empty_status_counts() -> dict[str, int]:
+    return {status.value: 0 for status in ServiceStatus}
+
+
+async def _get_dashboard_stats(db: AsyncSession, user: User) -> dict:
     query = select(
         func.count(McpService.id).label("total"),
+        func.sum(case((McpService.status == ServiceStatus.draft, 1), else_=0)).label("draft"),
         func.sum(case((McpService.status == ServiceStatus.running, 1), else_=0)).label("running"),
         func.sum(case((McpService.status == ServiceStatus.stopped, 1), else_=0)).label("stopped"),
         func.sum(case((McpService.status == ServiceStatus.error, 1), else_=0)).label("errors"),
         func.sum(case((McpService.status == ServiceStatus.building, 1), else_=0)).label("building"),
     )
-
-    # 非 admin 用户只统计自己的服务
-    if "*" not in current_user.role.permissions:
-        query = query.where(McpService.owner_id == current_user.id)
+    query = _scope_services_for_user(query, user)
 
     result = await db.execute(query)
     row = result.one()
+    errors = int(row.errors or 0)
 
     return {
         "total": row.total or 0,
+        "draft": int(row.draft or 0),
         "running": int(row.running or 0),
         "stopped": int(row.stopped or 0),
-        "errors": int(row.errors or 0),
+        "errors": errors,
+        "error": errors,
         "building": int(row.building or 0),
     }
 
 
-@router.get("/dashboard/recent-activities", summary="最近活动", description="获取仪表盘最近操作活动")
-async def dashboard_recent_activities(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """从 deploy_logs 获取最近活动"""
-    # 从 deploy_logs 获取最近的部署/启动/停止操作
-    deploy_query = (
-        select(DeployLog)
-        .options(selectinload(DeployLog.service))
-        .order_by(DeployLog.created_at.desc())
-        .limit(10)
-    )
-    result = await db.execute(deploy_query)
-    logs = result.scalars().all()
+async def _get_status_counts(db: AsyncSession, user: User) -> dict[str, int]:
+    query = select(McpService.status, func.count(McpService.id)).group_by(McpService.status)
+    query = _scope_services_for_user(query, user)
 
-    activities = []
-    for log in logs:
-        # 获取触发用户名
-        username = "system"
-        if log.triggered_by:
-            user_result = await db.execute(select(User).where(User.id == log.triggered_by))
-            trigger_user = user_result.scalar_one_or_none()
-            if trigger_user:
-                username = trigger_user.username
-
-        activities.append({
-            "id": log.id,
-            "type": log.action.value,
-            "service": log.service.name if log.service else "Unknown",
-            "user": username,
-            "status": log.status.value,
-            "time": log.created_at.isoformat() if log.created_at else "",
-        })
-
-    return activities
+    result = await db.execute(query)
+    counts = _empty_status_counts()
+    for status, count in result.all():
+        counts[status.value] = count or 0
+    return counts
 
 
-@router.get("/dashboard/recent-services", summary="最近更新服务", description="获取最近更新的服务列表")
-async def dashboard_recent_services(
-    current_user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
-):
-    """按 updated_at 降序获取最近更新的服务"""
-    query = select(McpService).order_by(McpService.updated_at.desc()).limit(5)
-
-    # 非 admin 只看自己的服务
-    if "*" not in current_user.role.permissions:
-        query = query.where(McpService.owner_id == current_user.id)
+async def _get_recent_services(db: AsyncSession, user: User, limit: int = 5) -> list[dict]:
+    query = select(McpService).order_by(McpService.updated_at.desc()).limit(limit)
+    query = _scope_services_for_user(query, user)
 
     result = await db.execute(query)
     services = result.scalars().all()
@@ -107,9 +82,102 @@ async def dashboard_recent_services(
             "name": svc.name,
             "status": svc.status.value,
             "updatedAt": svc.updated_at.isoformat() if svc.updated_at else "",
+            "transport_type": svc.transport_type.value,
+            "port": svc.port,
+            "current_version": svc.current_version,
         }
         for svc in services
     ]
+
+
+async def _get_recent_activities(db: AsyncSession, user: User, limit: int = 10) -> list[dict]:
+    query = (
+        select(DeployLog)
+        .options(selectinload(DeployLog.service))
+        .join(McpService, DeployLog.service_id == McpService.id)
+        .order_by(DeployLog.created_at.desc())
+        .limit(limit)
+    )
+    if not _can_view_all_services(user):
+        query = query.where(McpService.owner_id == user.id)
+
+    result = await db.execute(query)
+    logs = result.scalars().all()
+
+    user_ids = {log.triggered_by for log in logs if log.triggered_by}
+    usernames: dict[int, str] = {}
+    if user_ids:
+        users_result = await db.execute(select(User.id, User.username).where(User.id.in_(user_ids)))
+        usernames = {user_id: username for user_id, username in users_result.all()}
+
+    return [
+        {
+            "id": log.id,
+            "type": log.action.value,
+            "service": log.service.name if log.service else "Unknown",
+            "user": usernames.get(log.triggered_by, "system"),
+            "status": log.status.value,
+            "time": log.created_at.isoformat() if log.created_at else "",
+        }
+        for log in logs
+    ]
+
+
+@router.get("/dashboard/stats")
+async def dashboard_stats(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """获取仪表板统计数据"""
+    return await _get_dashboard_stats(db, current_user)
+
+
+@router.get("/dashboard/overview", summary="仪表盘概览", description="获取首页所需的统计、健康度、最近服务和最近活动")
+async def dashboard_overview(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    stats = await _get_dashboard_stats(db, current_user)
+    status_counts = await _get_status_counts(db, current_user)
+    recent_services = await _get_recent_services(db, current_user)
+    recent_activities = await _get_recent_activities(db, current_user)
+
+    total = stats["total"]
+    attention = stats["errors"] + stats["building"]
+    running_rate = round((stats["running"] / total) * 100) if total else 0
+
+    return {
+        "stats": stats,
+        "health": {
+            "running_rate": running_rate,
+            "attention_count": attention,
+            "ready_count": stats["running"] + stats["stopped"],
+        },
+        "status_breakdown": [
+            {"status": status.value, "count": status_counts[status.value]}
+            for status in ServiceStatus
+        ],
+        "recent_services": recent_services,
+        "recent_activities": recent_activities,
+    }
+
+
+@router.get("/dashboard/recent-activities", summary="最近活动", description="获取仪表盘最近操作活动")
+async def dashboard_recent_activities(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """从 deploy_logs 获取最近活动"""
+    return await _get_recent_activities(db, current_user)
+
+
+@router.get("/dashboard/recent-services", summary="最近更新服务", description="获取最近更新的服务列表")
+async def dashboard_recent_services(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """按 updated_at 降序获取最近更新的服务"""
+    return await _get_recent_services(db, current_user)
 
 
 def _service_to_response(svc: McpService) -> ServiceResponse:

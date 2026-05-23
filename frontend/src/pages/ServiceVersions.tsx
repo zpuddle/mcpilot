@@ -11,13 +11,17 @@ import {
   Eye,
   Code,
   Calendar,
+  X,
 } from 'lucide-react'
 import { servicesApi } from '@/api/services'
+import { useI18n } from '@/i18n'
+import { formatDate } from '@/utils/formatters'
 
 export function ServiceVersions() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { locale, t } = useI18n()
   const serviceId = id ? parseInt(id) : 0
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [showVersionDetail, setShowVersionDetail] = useState<number | null>(null)
@@ -42,15 +46,16 @@ export function ServiceVersions() {
   })
 
   const createVersionMutation = useMutation({
-    mutationFn: (changelog: string) => servicesApi.createVersion(serviceId, changelog),
+    mutationFn: (versionChangelog: string) =>
+      servicesApi.createVersion(serviceId, versionChangelog),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['versions', serviceId] })
-      toast.success('版本创建成功！')
+      toast.success(t('versions.created'))
       setShowCreateModal(false)
       setChangelog('')
     },
     onError: (error) => {
-      toast.error('创建版本失败')
+      toast.error(t('versions.createFailed'))
       console.error(error)
     },
   })
@@ -59,14 +64,20 @@ export function ServiceVersions() {
     mutationFn: (versionId: number) => servicesApi.rollbackToVersion(serviceId, versionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
-      toast.success('已成功回滚！请重新部署以应用更改。')
+      toast.success(t('versions.rollbackSuccess'))
       setShowVersionDetail(null)
     },
     onError: (error) => {
-      toast.error('回滚失败')
+      toast.error(t('versions.rollbackFailed'))
       console.error(error)
     },
   })
+
+  const handleRollback = (versionId: number, versionTag: string) => {
+    if (window.confirm(t('versions.confirmRollback', { version: versionTag }))) {
+      rollbackMutation.mutate(versionId)
+    }
+  }
 
   if (serviceLoading || versionsLoading) {
     return (
@@ -86,9 +97,9 @@ export function ServiceVersions() {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">服务未找到</h2>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('service.notFound')}</h2>
           <button onClick={() => navigate('/services')} className="btn-primary mt-4">
-            返回服务列表
+            {t('common.backToServices')}
           </button>
         </div>
       </div>
@@ -103,13 +114,13 @@ export function ServiceVersions() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">版本管理</h1>
+            <h1 className="text-2xl font-bold text-gray-900">{t('versions.title')}</h1>
             <p className="text-gray-500 mt-1">{service.name}</p>
           </div>
         </div>
         <button onClick={() => setShowCreateModal(true)} className="btn-primary">
           <Plus className="h-4 w-4 mr-2" />
-          创建版本
+          {t('versions.create')}
         </button>
       </div>
 
@@ -123,7 +134,7 @@ export function ServiceVersions() {
               transition={{ delay: index * 0.1 }}
               className="card p-6"
             >
-              <div className="flex items-start justify-between">
+              <div className="flex items-start justify-between gap-4">
                 <div className="flex items-start gap-4">
                   <div className="h-12 w-12 bg-primary-100 rounded-lg flex items-center justify-center flex-shrink-0">
                     <History className="h-6 w-6 text-primary-600" />
@@ -133,15 +144,17 @@ export function ServiceVersions() {
                       <h3 className="text-lg font-semibold text-gray-900">{version.version_tag}</h3>
                       {version.version_tag === `v${service.current_version}` && (
                         <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
-                          当前版本
+                          {t('versions.current')}
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 mt-1">{version.changelog || '无版本说明'}</p>
+                    <p className="text-gray-600 mt-1">
+                      {version.changelog || t('versions.noChangelog')}
+                    </p>
                     <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />
-                        {new Date(version.created_at).toLocaleString()}
+                        {formatDate(version.created_at, locale)}
                       </span>
                     </div>
                   </div>
@@ -152,20 +165,16 @@ export function ServiceVersions() {
                     className="btn-secondary py-2 text-sm"
                   >
                     <Eye className="h-4 w-4 mr-2" />
-                    查看详情
+                    {t('versions.viewDetails')}
                   </button>
                   {version.version_tag !== `v${service.current_version}` && (
                     <button
-                      onClick={() => {
-                        if (window.confirm(`确定要回滚到 ${version.version_tag} 吗？`)) {
-                          rollbackMutation.mutate(version.id)
-                        }
-                      }}
+                      onClick={() => handleRollback(version.id, version.version_tag)}
                       className="btn-primary py-2 text-sm"
                       disabled={rollbackMutation.isPending}
                     >
                       <RotateCcw className="h-4 w-4 mr-2" />
-                      回滚到此版本
+                      {t('versions.rollbackToVersion')}
                     </button>
                   )}
                 </div>
@@ -176,40 +185,43 @@ export function ServiceVersions() {
       ) : (
         <div className="card p-12 text-center">
           <History className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无版本记录</h3>
-          <p className="text-gray-500 mb-6">创建你的第一个版本快照！</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('versions.emptyTitle')}</h3>
+          <p className="text-gray-500 mb-6">{t('versions.emptyDescription')}</p>
           <button onClick={() => setShowCreateModal(true)} className="btn-primary">
             <Plus className="h-4 w-4 mr-2" />
-            创建版本
+            {t('versions.create')}
           </button>
         </div>
       )}
 
-      {/* 创建版本模态框 */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-2xl w-full">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">创建新版本</h2>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <Eye className="h-5 w-5" />
+              <h2 className="text-lg font-semibold text-gray-900">{t('versions.createTitle')}</h2>
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+                aria-label={t('common.close')}
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
             <form
-              onSubmit={(e) => {
-                e.preventDefault()
+              onSubmit={(event) => {
+                event.preventDefault()
                 createVersionMutation.mutate(changelog)
               }}
               className="p-6 space-y-4"
             >
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  版本说明（Changelog）
+                  {t('versions.changelog')}
                 </label>
                 <textarea
                   value={changelog}
-                  onChange={(e) => setChangelog(e.target.value)}
-                  placeholder="描述此版本的变更内容..."
+                  onChange={(event) => setChangelog(event.target.value)}
+                  placeholder={t('versions.changelogPlaceholder')}
                   rows={6}
                   className="input w-full"
                   required
@@ -221,14 +233,14 @@ export function ServiceVersions() {
                   onClick={() => setShowCreateModal(false)}
                   className="btn-secondary"
                 >
-                  取消
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn-primary"
                   disabled={createVersionMutation.isPending}
                 >
-                  {createVersionMutation.isPending ? '创建中...' : '创建版本'}
+                  {createVersionMutation.isPending ? t('versions.creating') : t('versions.create')}
                 </button>
               </div>
             </form>
@@ -236,7 +248,6 @@ export function ServiceVersions() {
         </div>
       )}
 
-      {/* 版本详情模态框 */}
       {showVersionDetail && selectedVersion && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
@@ -244,17 +255,21 @@ export function ServiceVersions() {
               <div>
                 <h2 className="text-lg font-semibold text-gray-900">{selectedVersion.version_tag}</h2>
                 <p className="text-sm text-gray-500 mt-1">
-                  {new Date(selectedVersion.created_at).toLocaleString()}
+                  {formatDate(selectedVersion.created_at, locale)}
                 </p>
               </div>
-              <button onClick={() => setShowVersionDetail(null)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <Eye className="h-5 w-5" />
+              <button
+                onClick={() => setShowVersionDetail(null)}
+                className="p-2 hover:bg-gray-100 rounded-lg"
+                aria-label={t('common.close')}
+              >
+                <X className="h-5 w-5" />
               </button>
             </div>
             <div className="p-6 space-y-6">
               {selectedVersion.changelog && (
                 <div>
-                  <h3 className="font-medium text-gray-900 mb-2">版本说明</h3>
+                  <h3 className="font-medium text-gray-900 mb-2">{t('versions.changelog')}</h3>
                   <p className="text-gray-600">{selectedVersion.changelog}</p>
                 </div>
               )}
@@ -263,7 +278,7 @@ export function ServiceVersions() {
                 <div>
                   <h3 className="font-medium text-gray-900 mb-2 flex items-center gap-2">
                     <Code className="h-4 w-4" />
-                    代码快照
+                    {t('versions.codeSnapshot')}
                   </h3>
                   <div className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-x-auto">
                     <pre className="text-sm">{selectedVersion.code_snapshot}</pre>
@@ -272,23 +287,18 @@ export function ServiceVersions() {
               )}
             </div>
             <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => setShowVersionDetail(null)}
-                className="btn-secondary"
-              >
-                关闭
+              <button onClick={() => setShowVersionDetail(null)} className="btn-secondary">
+                {t('common.close')}
               </button>
               {selectedVersion.version_tag !== `v${service.current_version}` && (
                 <button
-                  onClick={() => {
-                    if (window.confirm(`确定要回滚到 ${selectedVersion.version_tag} 吗？`)) {
-                      rollbackMutation.mutate(selectedVersion.id)
-                    }
-                  }}
+                  onClick={() => handleRollback(selectedVersion.id, selectedVersion.version_tag)}
                   className="btn-primary"
                   disabled={rollbackMutation.isPending}
                 >
-                  {rollbackMutation.isPending ? '回滚中...' : '回滚到此版本'}
+                  {rollbackMutation.isPending
+                    ? t('versions.rollingBack')
+                    : t('versions.rollbackToVersion')}
                 </button>
               )}
             </div>

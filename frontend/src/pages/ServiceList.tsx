@@ -16,6 +16,7 @@ import {
   Eye,
   Edit,
 } from 'lucide-react'
+import { useI18n } from '@/i18n'
 import { formatRelativeTime, truncate } from '@/utils/formatters'
 
 export function ServiceList() {
@@ -23,6 +24,7 @@ export function ServiceList() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t, locale } = useI18n()
 
   const { data: services, isLoading } = useQuery({
     queryKey: ['services'],
@@ -33,7 +35,7 @@ export function ServiceList() {
     mutationFn: (serviceId: number) => servicesApi.startService(serviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已启动')
+      toast.success(t('service.started'))
     },
   })
 
@@ -41,7 +43,7 @@ export function ServiceList() {
     mutationFn: (serviceId: number) => servicesApi.stopService(serviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已停止')
+      toast.success(t('service.stopped'))
     },
   })
 
@@ -49,7 +51,7 @@ export function ServiceList() {
     mutationFn: (serviceId: number) => servicesApi.deleteService(serviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已删除')
+      toast.success(t('service.deleted'))
     },
   })
 
@@ -68,7 +70,7 @@ export function ServiceList() {
     } else if (action === 'stop') {
       stopMutation.mutate(serviceId)
     } else if (action === 'delete') {
-      if (window.confirm(`确定要删除服务 "${serviceName}" 吗？`)) {
+      if (window.confirm(t('service.confirmDelete', { name: serviceName }))) {
         deleteMutation.mutate(serviceId)
       }
     }
@@ -78,12 +80,12 @@ export function ServiceList() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">服务管理</h1>
-          <p className="text-gray-500 mt-1">管理你的所有 MCP 服务</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('service.management')}</h1>
+          <p className="text-gray-500 mt-1">{t('service.managementSubtitle')}</p>
         </div>
         <button onClick={() => navigate('/services/new')} className="btn-primary">
           <Plus className="h-4 w-4 mr-2" />
-          创建服务
+          {t('service.createService')}
         </button>
       </div>
 
@@ -92,7 +94,7 @@ export function ServiceList() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
           <input
             type="text"
-            placeholder="搜索服务..."
+            placeholder={t('service.searchPlaceholder')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="input pl-10"
@@ -104,12 +106,12 @@ export function ServiceList() {
             onChange={(e) => setStatusFilter(e.target.value)}
             className="input w-full sm:w-auto"
           >
-            <option value="all">全部状态</option>
-            <option value="draft">草稿</option>
-            <option value="building">构建中</option>
-            <option value="running">运行中</option>
-            <option value="stopped">已停止</option>
-            <option value="error">异常</option>
+            <option value="all">{t('service.allStatuses')}</option>
+            <option value="draft">{t('status.draft')}</option>
+            <option value="building">{t('status.building')}</option>
+            <option value="running">{t('status.running')}</option>
+            <option value="stopped">{t('status.stopped')}</option>
+            <option value="error">{t('status.error')}</option>
           </select>
         </div>
       </div>
@@ -123,15 +125,15 @@ export function ServiceList() {
       ) : filteredServices.length === 0 ? (
         <div className="card p-12 text-center">
           <Cpu className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到服务</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('service.noServicesTitle')}</h3>
           <p className="text-gray-500 mb-6">
             {search || statusFilter !== 'all'
-              ? '尝试调整搜索条件或筛选'
-              : '开始创建你的第一个 MCP 服务'}
+              ? t('service.noServicesFiltered')
+              : t('service.noServicesEmpty')}
           </p>
           <button onClick={() => navigate('/services/new')} className="btn-primary">
             <Plus className="h-4 w-4 mr-2" />
-            创建服务
+            {t('service.createService')}
           </button>
         </div>
       ) : (
@@ -152,14 +154,14 @@ export function ServiceList() {
                     <button
                       onClick={() => navigate(`/services/${service.id}`)}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="查看详情"
+                      title={t('common.viewDetails')}
                     >
                       <Eye className="h-4 w-4 text-gray-500" />
                     </button>
                     <button
                       onClick={() => navigate(`/services/${service.id}/edit`)}
                       className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="编辑服务"
+                      title={t('nav.editService')}
                     >
                       <Edit className="h-4 w-4 text-gray-500" />
                     </button>
@@ -174,7 +176,7 @@ export function ServiceList() {
                 <div className="flex items-center justify-between">
                   <StatusBadge status={service.status} />
                   <span className="text-xs text-gray-400">
-                    {formatRelativeTime(service.updated_at)}
+                    {formatRelativeTime(service.updated_at, locale)}
                   </span>
                 </div>
 
@@ -186,7 +188,7 @@ export function ServiceList() {
                       disabled={startMutation.isPending}
                     >
                       <Play className="h-4 w-4 mr-2" />
-                      启动
+                      {t('actions.start')}
                     </button>
                   )}
                   {service.status === 'running' && (
@@ -196,7 +198,7 @@ export function ServiceList() {
                       disabled={stopMutation.isPending}
                     >
                       <Square className="h-4 w-4 mr-2" />
-                      停止
+                      {t('actions.stop')}
                     </button>
                   )}
                   <button

@@ -4,6 +4,8 @@ import { useAuthStore } from '@/store/authStore'
 import { toast } from 'sonner'
 import { motion } from 'framer-motion'
 import { Cpu, Eye, EyeOff, Lock, Mail, User, ArrowLeft } from 'lucide-react'
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
+import { useI18n } from '@/i18n'
 
 export function Register() {
   const [showPassword, setShowPassword] = useState(false)
@@ -15,20 +17,24 @@ export function Register() {
   const register = useAuthStore((state) => state.register)
   const isLoading = useAuthStore((state) => state.isLoading)
   const navigate = useNavigate()
+  const { t } = useI18n()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
       await register(formData)
-      toast.success('注册成功，请登录')
+      toast.success(t('auth.registerSuccess'))
       navigate('/login')
     } catch (error) {
-      toast.error('注册失败，请重试')
+      toast.error(t('auth.registerError'))
     }
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 flex items-center justify-center p-4">
+      <div className="absolute right-4 top-4">
+        <LanguageSwitcher compact />
+      </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -40,22 +46,22 @@ export function Register() {
           className="mb-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
         >
           <ArrowLeft className="h-4 w-4" />
-          返回登录
+          {t('auth.backToLogin')}
         </button>
 
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-20 w-20 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl shadow-lg mb-4">
             <Cpu className="h-10 w-10 text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">创建账号</h1>
-          <p className="text-gray-500 mt-2">注册一个新账号开始使用 MCPilot</p>
+          <h1 className="text-3xl font-bold text-gray-900">{t('auth.createAccount')}</h1>
+          <p className="text-gray-500 mt-2">{t('auth.registerSubtitle')}</p>
         </div>
 
         <div className="card p-8 shadow-xl">
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                用户名
+                {t('auth.username')}
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -66,7 +72,7 @@ export function Register() {
                     setFormData({ ...formData, username: e.target.value })
                   }
                   className="input pl-10"
-                  placeholder="请输入用户名"
+                  placeholder={t('auth.usernamePlaceholder')}
                   required
                 />
               </div>
@@ -74,7 +80,7 @@ export function Register() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                邮箱
+                {t('auth.email')}
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -85,7 +91,7 @@ export function Register() {
                     setFormData({ ...formData, email: e.target.value })
                   }
                   className="input pl-10"
-                  placeholder="请输入邮箱"
+                  placeholder={t('auth.emailPlaceholder')}
                   required
                 />
               </div>
@@ -93,7 +99,7 @@ export function Register() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                密码
+                {t('auth.password')}
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
@@ -104,7 +110,7 @@ export function Register() {
                     setFormData({ ...formData, password: e.target.value })
                   }
                   className="input pl-10 pr-10"
-                  placeholder="请输入密码"
+                  placeholder={t('auth.passwordPlaceholder')}
                   required
                 />
                 <button
@@ -126,18 +132,18 @@ export function Register() {
               disabled={isLoading}
               className="btn-primary w-full py-3 text-base"
             >
-              {isLoading ? '注册中...' : '注册'}
+              {isLoading ? t('auth.registering') : t('auth.register')}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-500 text-sm">
-              已有账号？{' '}
+              {t('auth.haveAccount')}{' '}
               <Link
                 to="/login"
                 className="text-primary-600 hover:text-primary-700 font-medium transition-colors"
               >
-                立即登录
+                {t('auth.loginNow')}
               </Link>
             </p>
           </div>

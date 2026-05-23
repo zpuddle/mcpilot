@@ -1,17 +1,35 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query'
-import { ArrowLeft, Play, Square, RotateCcw, Trash2, Edit, Code2, Activity, Server, Clock, HardDrive, ShieldCheck, Database, History, ExternalLink } from 'lucide-react'
-import { StatusBadge } from '@/components/common/StatusBadge'
-import { formatDate } from '@/utils/formatters'
-import { toast } from 'sonner'
 import { motion } from 'framer-motion'
-import { useState } from 'react'
+import { toast } from 'sonner'
+import {
+  Activity,
+  ArrowLeft,
+  Clock,
+  Code2,
+  Database,
+  Edit,
+  ExternalLink,
+  HardDrive,
+  History,
+  Play,
+  RotateCcw,
+  Server,
+  ShieldCheck,
+  Square,
+  Trash2,
+} from 'lucide-react'
 import { servicesApi } from '@/api/services'
+import { StatusBadge } from '@/components/common/StatusBadge'
+import { useI18n } from '@/i18n'
+import { formatDate } from '@/utils/formatters'
 
 export function ServiceDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t, locale } = useI18n()
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   const serviceId = id ? parseInt(id) : 0
@@ -39,7 +57,7 @@ export function ServiceDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已启动')
+      toast.success(t('service.started'))
     },
   })
 
@@ -48,7 +66,7 @@ export function ServiceDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已停止')
+      toast.success(t('service.stopped'))
     },
   })
 
@@ -57,7 +75,7 @@ export function ServiceDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['service', serviceId] })
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已重启')
+      toast.success(t('service.restarted'))
     },
   })
 
@@ -65,7 +83,7 @@ export function ServiceDetail() {
     mutationFn: (serviceId: number) => servicesApi.deleteService(serviceId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['services'] })
-      toast.success('服务已删除')
+      toast.success(t('service.deleted'))
       navigate('/services')
     },
   })
@@ -80,20 +98,20 @@ export function ServiceDetail() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-gray-200" />
           <div className="space-y-2">
-            <div className="w-48 h-8 bg-gray-200 rounded animate-pulse"></div>
-            <div className="w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
           </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <div key={i} className="card p-6">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[1, 2, 3, 4].map((item) => (
+            <div key={item} className="card p-6">
               <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+                <div className="h-10 w-10 animate-pulse rounded-lg bg-gray-200" />
                 <div className="space-y-2">
-                  <div className="w-20 h-4 bg-gray-200 rounded animate-pulse"></div>
-                  <div className="w-12 h-6 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-4 w-20 animate-pulse rounded bg-gray-200" />
+                  <div className="h-6 w-12 animate-pulse rounded bg-gray-200" />
                 </div>
               </div>
             </div>
@@ -105,22 +123,22 @@ export function ServiceDetail() {
 
   if (!service) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">服务未找到</h2>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">{t('service.notFound')}</h2>
           <button onClick={() => navigate('/services')} className="btn-primary mt-4">
-            返回服务列表
+            {t('common.backToServices')}
           </button>
         </div>
       </div>
     )
   }
 
-  const mockStats = [
-    { label: 'CPU使用率', value: '12%', icon: Activity, color: 'text-blue-600 bg-blue-100' },
-    { label: '内存使用', value: '256MB', icon: HardDrive, color: 'text-green-600 bg-green-100' },
-    { label: '运行时间', value: '5天 12小时', icon: Clock, color: 'text-purple-600 bg-purple-100' },
-    { label: '版本', value: `v${service.current_version}`, icon: ShieldCheck, color: 'text-orange-600 bg-orange-100' }
+  const stats = [
+    { label: t('service.cpuUsage'), value: '12%', icon: Activity, color: 'text-blue-600 bg-blue-100' },
+    { label: t('service.memoryUsage'), value: '256MB', icon: HardDrive, color: 'text-green-600 bg-green-100' },
+    { label: t('service.uptime'), value: t('service.uptimeValue'), icon: Clock, color: 'text-purple-600 bg-purple-100' },
+    { label: t('service.version'), value: `v${service.current_version}`, icon: ShieldCheck, color: 'text-orange-600 bg-orange-100' },
   ]
 
   return (
@@ -134,52 +152,64 @@ export function ServiceDetail() {
             <h1 className="text-2xl font-bold text-gray-900">{service.name}</h1>
             <StatusBadge status={service.status} />
           </div>
-          <p className="text-gray-500 mt-1">{service.description}</p>
+          <p className="mt-1 text-gray-500">{service.description}</p>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
         <button onClick={() => navigate(`/services/${serviceId}/edit`)} className="btn-primary gap-2">
           <Edit className="h-4 w-4" />
-          编辑服务
+          {t('nav.editService')}
         </button>
         {service.status === 'stopped' && (
-          <button onClick={() => startMutation.mutate(serviceId)} className="btn-success gap-2" disabled={startMutation.isPending}>
+          <button
+            onClick={() => startMutation.mutate(serviceId)}
+            className="btn-success gap-2"
+            disabled={startMutation.isPending}
+          >
             <Play className="h-4 w-4" />
-            启动
+            {t('actions.start')}
           </button>
         )}
         {service.status === 'running' && (
           <>
-            <button onClick={() => stopMutation.mutate(serviceId)} className="btn-secondary gap-2" disabled={stopMutation.isPending}>
+            <button
+              onClick={() => stopMutation.mutate(serviceId)}
+              className="btn-secondary gap-2"
+              disabled={stopMutation.isPending}
+            >
               <Square className="h-4 w-4" />
-              停止
+              {t('actions.stop')}
             </button>
-            <button onClick={() => restartMutation.mutate(serviceId)} className="btn-secondary gap-2" disabled={restartMutation.isPending}>
+            <button
+              onClick={() => restartMutation.mutate(serviceId)}
+              className="btn-secondary gap-2"
+              disabled={restartMutation.isPending}
+            >
               <RotateCcw className="h-4 w-4" />
-              重启
+              {t('actions.restart')}
             </button>
           </>
         )}
         <button onClick={() => setShowDeleteConfirm(true)} className="btn-danger gap-2">
           <Trash2 className="h-4 w-4" />
-          删除
+          {t('common.delete')}
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {mockStats.map((stat, i) => {
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, index) => {
           const Icon = stat.icon
           return (
             <motion.div
-              key={i}
+              key={stat.label}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.1 }}
+              transition={{ delay: index * 0.1 }}
               className="card p-6"
             >
               <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-lg ${stat.color}`}>
+                <div className={`rounded-lg p-3 ${stat.color}`}>
                   <Icon className="h-6 w-6" />
                 </div>
                 <div>
@@ -192,47 +222,47 @@ export function ServiceDetail() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <motion.div
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.2 }}
           className="card"
         >
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <div className="border-b border-gray-200 p-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
               <Server className="h-5 w-5" />
-              服务信息
+              {t('service.info')}
             </h2>
           </div>
-          <div className="p-6 space-y-4">
+          <div className="space-y-4 p-6">
             <div className="flex justify-between">
               <span className="text-gray-500">ID</span>
-              <span className="text-gray-900 font-mono">{service.id}</span>
+              <span className="font-mono text-gray-900">{service.id}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">传输协议</span>
+              <span className="text-gray-500">{t('service.transportProtocol')}</span>
               <span className="text-gray-900">{service.transport_type.toUpperCase()}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">端口</span>
-              <span className="text-gray-900">{service.port || 'N/A'}</span>
+              <span className="text-gray-500">{t('service.port')}</span>
+              <span className="text-gray-900">{service.port ?? t('common.notAvailable')}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">当前版本</span>
+              <span className="text-gray-500">{t('service.currentVersion')}</span>
               <span className="text-gray-900">{service.current_version}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">所有者</span>
+              <span className="text-gray-500">{t('service.owner')}</span>
               <span className="text-gray-900">{service.owner_name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">创建时间</span>
-              <span className="text-gray-900">{formatDate(service.created_at)}</span>
+              <span className="text-gray-500">{t('service.createdAt')}</span>
+              <span className="text-gray-900">{formatDate(service.created_at, locale)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-500">更新时间</span>
-              <span className="text-gray-900">{formatDate(service.updated_at)}</span>
+              <span className="text-gray-500">{t('service.updatedAt')}</span>
+              <span className="text-gray-900">{formatDate(service.updated_at, locale)}</span>
             </div>
           </div>
         </motion.div>
@@ -243,106 +273,94 @@ export function ServiceDetail() {
           transition={{ delay: 0.3 }}
           className="card"
         >
-          <div className="p-6 border-b border-gray-200">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+          <div className="border-b border-gray-200 p-6">
+            <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
               <Database className="h-5 w-5" />
-              环境变量
+              {t('service.envVars')}
             </h2>
           </div>
           <div className="p-6">
             {service.env_vars && Object.keys(service.env_vars).length > 0 ? (
               <div className="space-y-2">
                 {Object.entries(service.env_vars).map(([key, value]) => (
-                  <div key={key} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div key={key} className="flex items-center justify-between rounded-lg bg-gray-50 p-3">
                     <span className="font-medium text-gray-700">{key}</span>
-                    <span className="text-sm text-gray-500 font-mono">{typeof value === 'string' && value.length > 20 ? `${value.slice(0, 20)}...` : String(value)}</span>
+                    <span className="font-mono text-sm text-gray-500">
+                      {typeof value === 'string' && value.length > 20 ? `${value.slice(0, 20)}...` : String(value)}
+                    </span>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-gray-500 text-center py-4">暂无环境变量</p>
+              <p className="py-4 text-center text-gray-500">{t('service.noEnvVars')}</p>
             )}
           </div>
         </motion.div>
       </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.4 }}
-        className="card"
-      >
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="card">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             <Code2 className="h-5 w-5" />
-            工具 (Tools)
+            {t('service.toolsTitle')}
           </h2>
-          <button 
+          <button
             onClick={() => navigate(`/services/${serviceId}/tools`)}
-            className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-sm font-medium"
+            className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            管理工具
+            {t('service.manageTools')}
             <ExternalLink className="h-3 w-3" />
           </button>
         </div>
         <div className="p-6">
           {tools && tools.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {tools.map(tool => (
-                <div key={tool.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {tools.map((tool) => (
+                <div key={tool.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="mb-2 flex items-center justify-between">
                     <h3 className="font-medium text-gray-900">{tool.name}</h3>
-                    {tool.is_enabled ? (
-                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">已启用</span>
-                    ) : (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">已禁用</span>
-                    )}
+                    <span className={`rounded px-2 py-1 text-xs ${tool.is_enabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                      {tool.is_enabled ? t('status.enabled') : t('status.disabled')}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-500 mb-2">{tool.description}</p>
-                  <p className="text-xs text-gray-400 font-mono">Handler: {tool.handler_name}</p>
+                  <p className="mb-2 text-sm text-gray-500">{tool.description}</p>
+                  <p className="font-mono text-xs text-gray-400">Handler: {tool.handler_name}</p>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无工具配置</p>
+            <p className="py-4 text-center text-gray-500">{t('service.noToolsConfigured')}</p>
           )}
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
-        className="card"
-      >
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }} className="card">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             <Activity className="h-5 w-5" />
-            资源 (Resources)
+            {t('service.resourcesTitle')}
           </h2>
-          <button 
+          <button
             onClick={() => navigate(`/services/${serviceId}/resources`)}
-            className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-sm font-medium"
+            className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            管理资源
+            {t('service.manageResources')}
             <ExternalLink className="h-3 w-3" />
           </button>
         </div>
         <div className="p-6">
           {resources && resources.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {resources.map(resource => (
-                <div key={resource.id} className="p-4 border border-gray-200 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              {resources.map((resource) => (
+                <div key={resource.id} className="rounded-lg border border-gray-200 p-4">
+                  <div className="mb-2 flex items-center justify-between">
                     <h3 className="font-medium text-gray-900">{resource.name}</h3>
-                    {resource.is_enabled ? (
-                      <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">已启用</span>
-                    ) : (
-                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">已禁用</span>
-                    )}
+                    <span className={`rounded px-2 py-1 text-xs ${resource.is_enabled ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'}`}>
+                      {resource.is_enabled ? t('status.enabled') : t('status.disabled')}
+                    </span>
                   </div>
-                  <p className="text-sm text-gray-500 mb-2">{resource.description}</p>
-                  <div className="text-xs text-gray-400 space-y-1">
+                  <p className="mb-2 text-sm text-gray-500">{resource.description}</p>
+                  <div className="space-y-1 text-xs text-gray-400">
                     <p className="font-mono">URI: {resource.uri_template}</p>
                     <p>MIME: {resource.mime_type}</p>
                   </div>
@@ -350,72 +368,60 @@ export function ServiceDetail() {
               ))}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-4">暂无资源配置</p>
+            <p className="py-4 text-center text-gray-500">{t('service.noResourcesConfigured')}</p>
           )}
         </div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
-        className="card"
-      >
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }} className="card">
+        <div className="flex items-center justify-between border-b border-gray-200 p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900">
             <History className="h-5 w-5" />
-            版本管理
+            {t('versions.title')}
           </h2>
-          <button 
+          <button
             onClick={() => navigate(`/services/${serviceId}/versions`)}
-            className="text-primary-600 hover:text-primary-700 flex items-center gap-1 text-sm font-medium"
+            className="flex items-center gap-1 text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            查看所有版本
+            {t('service.viewAllVersions')}
             <ExternalLink className="h-3 w-3" />
           </button>
         </div>
         <div className="p-6">
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 bg-primary-100 rounded-lg flex items-center justify-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-primary-100">
               <History className="h-7 w-7 text-primary-600" />
             </div>
             <div>
-              <p className="text-sm text-gray-500">当前版本</p>
+              <p className="text-sm text-gray-500">{t('service.currentVersion')}</p>
               <p className="text-2xl font-bold text-gray-900">v{service.current_version}</p>
             </div>
           </div>
-          <div className="mt-4 pt-4 border-t border-gray-100">
-            <button
-              onClick={() => navigate(`/services/${serviceId}/versions`)}
-              className="btn-secondary w-full"
-            >
-              管理版本和回滚
+          <div className="mt-4 border-t border-gray-100 pt-4">
+            <button onClick={() => navigate(`/services/${serviceId}/versions`)} className="btn-secondary w-full">
+              {t('service.manageVersionsAndRollback')}
             </button>
           </div>
         </div>
       </motion.div>
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-md w-full p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">确认删除</h3>
-            <p className="text-gray-500 mb-6">
-              确定要删除服务 "{service.name}" 吗？此操作不可撤销。
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-xl bg-white p-6">
+            <h3 className="mb-2 text-lg font-semibold text-gray-900">{t('service.deleteConfirmTitle')}</h3>
+            <p className="mb-6 text-gray-500">
+              {t('service.deleteConfirmDescription', { name: service.name })}
             </p>
-            <div className="flex gap-3 justify-end">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
                 className="btn-secondary"
                 disabled={deleteMutation.isPending}
               >
-                取消
+                {t('common.cancel')}
               </button>
-              <button
-                onClick={handleDelete}
-                className="btn-danger"
-                disabled={deleteMutation.isPending}
-              >
-                {deleteMutation.isPending ? '删除中...' : '删除'}
+              <button onClick={handleDelete} className="btn-danger" disabled={deleteMutation.isPending}>
+                {deleteMutation.isPending ? t('common.deleting') : t('common.delete')}
               </button>
             </div>
           </div>

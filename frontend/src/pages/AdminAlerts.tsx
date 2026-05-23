@@ -10,12 +10,16 @@ import {
   Settings,
   Eye,
 } from 'lucide-react'
-import { formatRelativeTime } from '@/utils/formatters'
 import { alertsApi } from '@/api/admin'
+import { useI18n } from '@/i18n'
+import { formatRelativeTime } from '@/utils/formatters'
+
+type AlertFilter = 'all' | 'active' | 'resolved'
 
 export function AdminAlerts() {
-  const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('all')
+  const [filter, setFilter] = useState<AlertFilter>('all')
   const queryClient = useQueryClient()
+  const { locale, t } = useI18n()
 
   const resolvedParam = filter === 'active' ? false : filter === 'resolved' ? true : undefined
 
@@ -30,10 +34,10 @@ export function AdminAlerts() {
     mutationFn: (alertId: number) => alertsApi.resolveAlert(alertId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'alerts'] })
-      toast.success('告警已标记为已解决')
+      toast.success(t('admin.alerts.resolvedToast'))
     },
     onError: () => {
-      toast.error('操作失败')
+      toast.error(t('admin.alerts.operationFailed'))
     },
   })
 
@@ -57,28 +61,37 @@ export function AdminAlerts() {
     return 'border-blue-200 bg-blue-50'
   }
 
+  const emptyDescription =
+    filter === 'active'
+      ? t('admin.alerts.emptyActive')
+      : filter === 'resolved'
+        ? t('admin.alerts.emptyResolved')
+        : t('admin.alerts.emptyAll')
+
+  const filters: { key: AlertFilter; label: string }[] = [
+    { key: 'all', label: t('admin.alerts.all') },
+    { key: 'active', label: t('admin.alerts.active') },
+    { key: 'resolved', label: t('admin.alerts.resolved') },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">告警管理</h1>
-          <p className="text-gray-500 mt-1">监控和管理系统告警</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.alerts.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('admin.alerts.subtitle')}</p>
         </div>
         <button className="btn-secondary">
           <Settings className="h-4 w-4 mr-2" />
-          告警规则
+          {t('admin.alerts.rules')}
         </button>
       </div>
 
       <div className="flex gap-2">
-        {[
-          { key: 'all', label: '全部' },
-          { key: 'active', label: '未解决' },
-          { key: 'resolved', label: '已解决' },
-        ].map(({ key, label }) => (
+        {filters.map(({ key, label }) => (
           <button
             key={key}
-            onClick={() => setFilter(key as any)}
+            onClick={() => setFilter(key)}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
               filter === key
                 ? 'bg-primary-100 text-primary-700'
@@ -91,7 +104,7 @@ export function AdminAlerts() {
       </div>
 
       {isLoading ? (
-        <div className="card p-12 text-center text-gray-500">加载中...</div>
+        <div className="card p-12 text-center text-gray-500">{t('common.loading')}</div>
       ) : (
         <div className="space-y-4">
           {alerts.map((alert, index) => (
@@ -116,18 +129,25 @@ export function AdminAlerts() {
                         {alert.resolved && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700">
                             <CheckCircle className="h-3 w-3 mr-1" />
-                            已解决
+                            {t('status.resolved')}
                           </span>
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mt-1">{alert.message}</p>
                       <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        {alert.service_name && <span>服务: {alert.service_name}</span>}
-                        {alert.created_at && <span>{formatRelativeTime(alert.created_at)}</span>}
+                        {alert.service_name && (
+                          <span>{t('admin.alerts.servicePrefix', { name: alert.service_name })}</span>
+                        )}
+                        {alert.created_at && (
+                          <span>{formatRelativeTime(alert.created_at, locale)}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <button className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg">
+                      <button
+                        className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg"
+                        aria-label={t('common.viewDetails')}
+                      >
                         <Eye className="h-4 w-4" />
                       </button>
                       {!alert.resolved && (
@@ -137,7 +157,7 @@ export function AdminAlerts() {
                           className="btn-success py-2 text-sm"
                         >
                           <CheckCircle className="h-4 w-4 mr-2" />
-                          标记解决
+                          {t('admin.alerts.markResolved')}
                         </button>
                       )}
                     </div>
@@ -152,14 +172,8 @@ export function AdminAlerts() {
       {!isLoading && alerts.length === 0 && (
         <div className="card p-12 text-center">
           <Bell className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">没有告警</h3>
-          <p className="text-gray-500">
-            {filter === 'active'
-              ? '太棒了！没有未解决的告警'
-              : filter === 'resolved'
-              ? '还没有已解决的告警记录'
-              : '一切运行正常！'}
-          </p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('admin.alerts.emptyTitle')}</h3>
+          <p className="text-gray-500">{emptyDescription}</p>
         </div>
       )}
     </div>

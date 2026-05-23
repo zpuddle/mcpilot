@@ -1,5 +1,6 @@
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios'
 import { toast } from 'sonner'
+import { getCurrentLocale, translate } from '@/i18n'
 
 const API_BASE_URL = '/api/v1'
 
@@ -55,7 +56,7 @@ class ApiClient {
               return this.client(originalRequest)
             } catch (refreshError) {
               this.clearTokens()
-              toast.error('会话已过期，请重新登录')
+              toast.error(translate(getCurrentLocale(), 'auth.sessionExpired'))
               window.location.href = '/login'
               return Promise.reject(refreshError)
             }

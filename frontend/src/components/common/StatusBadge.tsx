@@ -1,4 +1,5 @@
-import { cn, getStatusBadgeClasses, getStatusText } from '@/utils/formatters'
+import { useI18n, type TranslationKey } from '@/i18n'
+import { cn, getStatusBadgeClasses } from '@/utils/formatters'
 import { motion } from 'framer-motion'
 
 interface StatusBadgeProps {
@@ -7,6 +8,9 @@ interface StatusBadgeProps {
 }
 
 export function StatusBadge({ status, className }: StatusBadgeProps) {
+  const { t } = useI18n()
+  const statusKey = `status.${status}` as TranslationKey
+
   return (
     <span
       className={cn(
@@ -38,7 +42,7 @@ export function StatusBadge({ status, className }: StatusBadgeProps) {
       {status === 'draft' && (
         <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-gray-400" />
       )}
-      {getStatusText(status)}
+      {t(statusKey)}
     </span>
   )
 }

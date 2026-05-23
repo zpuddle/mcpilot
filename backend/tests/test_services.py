@@ -1,6 +1,16 @@
 """Service management integration tests."""
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+
+from app.database.models import (
+    DeployAction,
+    DeployLog,
+    DeployStatus,
+    McpService,
+    ServiceStatus,
+    User,
+)
 
 
 class TestServiceCRUD:
@@ -143,3 +153,59 @@ class TestServiceCode:
         data = resp.json()
         assert data["valid"] is False
         assert len(data["errors"]) > 0
+
+
+class TestServiceDashboard:
+    """Tests for dashboard summary endpoints."""
+
+    async def test_dashboard_overview(self, client: AsyncClient, auth_headers: dict, db_session):
+        result = await db_session.execute(select(User).where(User.username == "admin"))
+        admin = result.scalar_one()
+
+        running = McpService(
+            name="Running Overview",
+            slug="running-overview",
+            owner_id=admin.id,
+            status=ServiceStatus.running,
+            port=9010,
+            current_version=2,
+        )
+        error = McpService(
+            name="Error Overview",
+            slug="error-overview",
+            owner_id=admin.id,
+            status=ServiceStatus.error,
+        )
+        db_session.add_all([running, error])
+        await db_session.flush()
+
+        db_session.add(
+            DeployLog(
+                service_id=running.id,
+                action=DeployAction.build,
+                status=DeployStatus.success,
+                triggered_by=admin.id,
+            )
+        )
+        await db_session.commit()
+
+        resp = await client.get("/api/v1/services/dashboard/overview", headers=auth_headers)
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["stats"]["total"] == 2
+        assert data["stats"]["running"] == 1
+        assert data["stats"]["errors"] == 1
+        assert data["stats"]["error"] == 1
+        assert data["health"]["running_rate"] == 50
+        assert data["health"]["attention_count"] == 1
+        assert data["status_breakdown"] == [
+            {"status": "draft", "count": 0},
+            {"status": "building", "count": 0},
+            {"status": "running", "count": 1},
+            {"status": "stopped", "count": 0},
+            {"status": "error", "count": 1},
+        ]
+        assert data["recent_services"][0]["name"] in {"Running Overview", "Error Overview"}
+        assert data["recent_activities"][0]["service"] == "Running Overview"
+        assert data["recent_activities"][0]["user"] == "admin"

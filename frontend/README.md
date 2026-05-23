@@ -1,90 +1,165 @@
 # MCPilot Frontend
 
-MCP (Model Context Protocol) 服务管理平台的前端项目。
+Frontend application for MCPilot, the browser-based MCP service management platform.
 
-## 技术栈
+## Tech Stack
 
 - React 18
-- TypeScript
-- Vite
+- TypeScript 5.6
+- Vite 5
 - Tailwind CSS
 - React Router v6
-- TanStack Query (React Query)
+- TanStack Query
 - Zustand
 - Framer Motion
 - Lucide Icons
-- Sonner (Toasts)
+- Sonner
+- date-fns
 
-## 快速开始
+## Quick Start
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 npm install
 ```
 
-### 开发模式
+### Development
 
 ```bash
 npm run dev
 ```
 
-访问 http://localhost:3000
+The Vite dev server is configured for `http://localhost:3001` and proxies `/api` requests to `http://localhost:8020`.
 
-### 构建
+### Build
 
 ```bash
 npm run build
 ```
 
-### 预览构建结果
+### Preview Production Build
 
 ```bash
 npm run preview
 ```
 
-## 项目结构
+## Project Structure
 
-```
+```text
 src/
-├── api/              # API 客户端
-├── components/       # React 组件
-│   ├── common/      # 通用组件
-│   └── layout/      # 布局组件
-├── pages/           # 页面组件
-├── router/          # 路由配置
-├── store/           # Zustand 状态管理
-├── styles/          # 全局样式
-├── types/           # TypeScript 类型定义
-├── utils/           # 工具函数
-├── App.tsx          # 根组件
-└── main.tsx         # 应用入口
+├── api/              # API client modules
+├── components/       # Reusable React components
+│   ├── common/       # Shared UI components
+│   └── layout/       # Layout components
+├── i18n/             # Locale messages and translation provider
+│   ├── index.tsx     # Provider, hooks, locale registration
+│   └── locales/      # Per-locale message files
+├── pages/            # Route-level page components
+├── router/           # Route definitions
+├── store/            # Zustand stores
+├── styles/           # Global styles
+├── types/            # TypeScript types
+├── utils/            # Formatting and utility helpers
+├── App.tsx           # Root application component
+└── main.tsx          # Application entrypoint
 ```
 
-## 功能特性
+## Internationalization
 
-- ✅ 用户认证 (登录/注册)
-- ✅ 仪表板 (服务统计)
-- ✅ 服务管理 (列表/搜索/筛选)
-- 🚧 服务详情 (配置/代码/部署/日志)
-- 🚧 模板管理
-- 🚧 管理员功能
-  - 用户管理
-  - 角色管理
-  - 审计日志
-  - 告警管理
-  - Docker 管理
+The frontend defaults to English and currently supports English and Chinese.
 
-## 环境变量
+Runtime behavior:
 
-创建 `.env.local` 文件:
+- The selected locale is persisted in `localStorage` with the key `mcpilot.locale`.
+- Invalid or missing locale values fall back to English.
+- `document.documentElement.lang` is updated when the locale changes.
+- `document.title` is translated through the active locale.
+- Dates and relative times should use `formatDate(date, locale)` and `formatRelativeTime(date, locale)`.
 
+Key files:
+
+- `src/i18n/index.tsx` defines `DEFAULT_LOCALE`, `messages`, `languages`, `I18nProvider`, `useI18n`, `translate`, and `getCurrentLocale`.
+- `src/i18n/locales/en.ts` is the source schema for translation keys.
+- `src/i18n/locales/zh.ts` provides Chinese translations and uses `satisfies MessageSchema` for key coverage.
+- `src/components/common/LanguageSwitcher.tsx` renders the language selector.
+
+### Using Translations
+
+Use `useI18n()` in React components:
+
+```tsx
+import { useI18n } from '@/i18n'
+
+export function Example() {
+  const { t } = useI18n()
+
+  return <h1>{t('dashboard.title')}</h1>
+}
 ```
-VITE_API_URL=http://localhost:8000/api/v1
+
+Use interpolation for dynamic values:
+
+```tsx
+t('service.confirmDelete', { name: service.name })
 ```
 
-## 设计系统
+Use `translate()` outside React components:
 
-- 主题色: 深蓝 (#1e40af) + 青色 (#06b6d4)
-- 状态色: 成功 (绿) / 警告 (橙) / 错误 (红)
-- 字体: Inter (无衬线) + JetBrains Mono (代码)
+```ts
+import { getCurrentLocale, translate } from '@/i18n'
+
+translate(getCurrentLocale(), 'auth.sessionExpired')
+```
+
+### Adding a Language
+
+1. Create `src/i18n/locales/<locale>.ts`.
+2. Import `MessageSchema` from `./en`.
+3. Export the new locale object with `satisfies MessageSchema`.
+4. Import the locale in `src/i18n/index.tsx`.
+5. Add it to `messages`.
+6. Add its metadata to `languages`.
+
+Example:
+
+```ts
+import type { MessageSchema } from './en'
+
+export const ja = {
+  app: {
+    title: 'MCPilot',
+    name: 'MCPilot',
+    tagline: '...',
+    professionalTagline: '...',
+  },
+  // Keep all keys from en.ts.
+} satisfies MessageSchema
+```
+
+### Translation Maintenance Rules
+
+- Do not hard-code user-visible UI text in page or component files.
+- Keep API values stable and translate only display labels. For example, template category API values remain `Database`, `File System`, and `General`.
+- Add new translation keys to `en.ts` first, then update every locale file.
+- Prefer existing common keys such as `common.loading`, `common.cancel`, `common.delete`, and `common.searchEmpty`.
+- Pass the active `locale` into date formatting helpers instead of calling `toLocaleString()` directly.
+
+## Features
+
+- Authentication: login, registration, token refresh handling
+- Dashboard: service health, status distribution, recent services, recent activity
+- Service management: list, create, edit, detail, deploy, lifecycle actions
+- Tool and resource management
+- Version management and rollback
+- Template library and service creation from templates
+- Admin pages: users, alerts, Docker containers, audit logs
+- English and Chinese UI switching
+
+## Design Notes
+
+- Global styles are defined in `src/styles/global.css`.
+- Shared UI elements belong under `src/components/common`.
+- Layout shell and navigation belong under `src/components/layout`.
+- Status text should use `StatusBadge` or `status.*` translation keys.
+- Icons should come from `lucide-react` when available.

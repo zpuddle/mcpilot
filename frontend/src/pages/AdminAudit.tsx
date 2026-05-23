@@ -10,8 +10,9 @@ import {
   Download,
   FileText,
 } from 'lucide-react'
-import { formatDate } from '@/utils/formatters'
 import { auditApi } from '@/api/admin'
+import { useI18n } from '@/i18n'
+import { formatDate } from '@/utils/formatters'
 
 const actionColors: Record<string, string> = {
   'service.create': 'bg-green-100 text-green-700',
@@ -30,6 +31,7 @@ const actionColors: Record<string, string> = {
 export function AdminAudit() {
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const { locale, t } = useI18n()
 
   const { data: logsData, isLoading } = useQuery({
     queryKey: ['admin', 'audit-logs', page],
@@ -56,9 +58,9 @@ export function AdminAudit() {
       a.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(a)
-      toast.success('日志已导出')
+      toast.success(t('admin.audit.exported'))
     } catch {
-      toast.error('导出失败')
+      toast.error(t('admin.audit.exportFailed'))
     }
   }
 
@@ -66,12 +68,12 @@ export function AdminAudit() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">审计日志</h1>
-          <p className="text-gray-500 mt-1">查看系统操作历史记录</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.audit.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('admin.audit.subtitle')}</p>
         </div>
         <button className="btn-secondary" onClick={handleExport}>
           <Download className="h-4 w-4 mr-2" />
-          导出日志
+          {t('admin.audit.exportLogs')}
         </button>
       </div>
 
@@ -79,15 +81,15 @@ export function AdminAudit() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           type="text"
-          placeholder="搜索操作、用户或资源..."
+          placeholder={t('admin.audit.searchPlaceholder')}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           className="input pl-10"
         />
       </div>
 
       {isLoading ? (
-        <div className="card p-12 text-center text-gray-500">加载中...</div>
+        <div className="card p-12 text-center text-gray-500">{t('common.loading')}</div>
       ) : (
         <div className="card">
           <div className="divide-y divide-gray-200">
@@ -118,12 +120,12 @@ export function AdminAudit() {
                       </div>
                       <span className="text-sm text-gray-500 flex items-center gap-1 shrink-0">
                         <Clock className="h-3 w-3" />
-                        {log.created_at ? formatDate(log.created_at) : ''}
+                        {log.created_at ? formatDate(log.created_at, locale) : ''}
                       </span>
                     </div>
                     <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                       <div>
-                        <span className="text-gray-500">资源: </span>
+                        <span className="text-gray-500">{t('admin.audit.resource')} </span>
                         <span className="text-gray-900 font-medium">{log.resource_type}</span>
                         {log.resource_id && <span className="text-gray-500"> #{log.resource_id}</span>}
                       </div>
@@ -133,7 +135,7 @@ export function AdminAudit() {
                       </div>
                       {log.resource_name && (
                         <div className="md:text-right">
-                          <span className="text-gray-500">名称: </span>
+                          <span className="text-gray-500">{t('admin.audit.name')} </span>
                           <span className="text-gray-600">{log.resource_name}</span>
                         </div>
                       )}
@@ -143,7 +145,7 @@ export function AdminAudit() {
                         <details className="group">
                           <summary className="cursor-pointer text-sm text-gray-500 hover:text-gray-700 flex items-center gap-2">
                             <FileText className="h-4 w-4" />
-                            查看详情
+                            {t('admin.audit.viewDetails')}
                           </summary>
                           <div className="mt-2 p-3 bg-gray-50 rounded-lg">
                             <pre className="text-sm text-gray-700 overflow-x-auto">
@@ -161,26 +163,25 @@ export function AdminAudit() {
         </div>
       )}
 
-      {/* Pagination */}
       {total > 20 && (
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">
-            共 {total} 条记录，第 {page} 页
+            {t('admin.audit.pagination', { total, page })}
           </p>
           <div className="flex gap-2">
             <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              onClick={() => setPage((currentPage) => Math.max(1, currentPage - 1))}
               disabled={page <= 1}
               className="btn-secondary py-2 text-sm disabled:opacity-50"
             >
-              上一页
+              {t('common.previousPage')}
             </button>
             <button
-              onClick={() => setPage((p) => p + 1)}
+              onClick={() => setPage((currentPage) => currentPage + 1)}
               disabled={page * 20 >= total}
               className="btn-secondary py-2 text-sm disabled:opacity-50"
             >
-              下一页
+              {t('common.nextPage')}
             </button>
           </div>
         </div>
@@ -189,8 +190,8 @@ export function AdminAudit() {
       {!isLoading && filteredLogs.length === 0 && (
         <div className="card p-12 text-center">
           <Activity className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到日志</h3>
-          <p className="text-gray-500">尝试调整搜索条件</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('admin.audit.emptyTitle')}</h3>
+          <p className="text-gray-500">{t('common.searchEmpty')}</p>
         </div>
       )}
     </div>

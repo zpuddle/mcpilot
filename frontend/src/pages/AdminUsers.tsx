@@ -10,12 +10,14 @@ import {
   Trash2,
   Ban,
 } from 'lucide-react'
-import { formatDate } from '@/utils/formatters'
 import { usersApi } from '@/api/admin'
+import { useI18n } from '@/i18n'
+import { formatDate } from '@/utils/formatters'
 
 export function AdminUsers() {
   const [search, setSearch] = useState('')
   const queryClient = useQueryClient()
+  const { locale, t } = useI18n()
 
   const { data: users = [], isLoading } = useQuery({
     queryKey: ['admin', 'users'],
@@ -27,10 +29,10 @@ export function AdminUsers() {
       usersApi.updateUserStatus(userId, isActive),
     onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      toast.success(variables.isActive ? '用户已启用' : '用户已禁用')
+      toast.success(variables.isActive ? t('admin.users.enabledToast') : t('admin.users.disabledToast'))
     },
     onError: () => {
-      toast.error('操作失败')
+      toast.error(t('admin.users.operationFailed'))
     },
   })
 
@@ -38,10 +40,10 @@ export function AdminUsers() {
     mutationFn: (userId: number) => usersApi.deleteUser(userId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin', 'users'] })
-      toast.success('用户已删除')
+      toast.success(t('admin.users.deleted'))
     },
     onError: () => {
-      toast.error('删除失败')
+      toast.error(t('admin.users.deleteFailed'))
     },
   })
 
@@ -54,12 +56,12 @@ export function AdminUsers() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">用户管理</h1>
-          <p className="text-gray-500 mt-1">管理平台用户和权限</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('admin.users.title')}</h1>
+          <p className="text-gray-500 mt-1">{t('admin.users.subtitle')}</p>
         </div>
         <button className="btn-primary">
           <Plus className="h-4 w-4 mr-2" />
-          添加用户
+          {t('admin.users.addUser')}
         </button>
       </div>
 
@@ -67,9 +69,9 @@ export function AdminUsers() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
         <input
           type="text"
-          placeholder="搜索用户..."
+          placeholder={t('admin.users.searchPlaceholder')}
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(event) => setSearch(event.target.value)}
           className="input pl-10"
         />
       </div>
@@ -80,19 +82,19 @@ export function AdminUsers() {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  用户
+                  {t('admin.users.tableUser')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  角色
+                  {t('admin.users.tableRole')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  状态
+                  {t('admin.users.tableStatus')}
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  创建时间
+                  {t('admin.users.tableCreatedAt')}
                 </th>
                 <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  操作
+                  {t('admin.users.tableActions')}
                 </th>
               </tr>
             </thead>
@@ -100,7 +102,7 @@ export function AdminUsers() {
               {isLoading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-12 text-center text-gray-500">
-                    加载中...
+                    {t('common.loading')}
                   </td>
                 </tr>
               ) : (
@@ -139,11 +141,11 @@ export function AdminUsers() {
                           ? 'bg-green-100 text-green-700'
                           : 'bg-red-100 text-red-700'
                       }`}>
-                        {user.is_active ? '活跃' : '禁用'}
+                        {user.is_active ? t('status.active') : t('status.inactive')}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.created_at ? formatDate(user.created_at) : '-'}
+                      {user.created_at ? formatDate(user.created_at, locale) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm">
                       <div className="flex items-center justify-end gap-2">
@@ -151,7 +153,7 @@ export function AdminUsers() {
                           <button
                             onClick={() => toggleStatusMutation.mutate({ userId: user.id, isActive: false })}
                             className="p-2 text-orange-400 hover:text-orange-600 hover:bg-orange-50 rounded-lg"
-                            title="禁用"
+                            title={t('common.disable')}
                           >
                             <Ban className="h-4 w-4" />
                           </button>
@@ -159,7 +161,7 @@ export function AdminUsers() {
                           <button
                             onClick={() => toggleStatusMutation.mutate({ userId: user.id, isActive: true })}
                             className="p-2 text-green-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
-                            title="启用"
+                            title={t('common.enable')}
                           >
                             <Users className="h-4 w-4" />
                           </button>
@@ -167,12 +169,12 @@ export function AdminUsers() {
                         {user.role_name !== 'admin' && (
                           <button
                             onClick={() => {
-                              if (confirm(`确定要删除用户 "${user.username}" 吗？`)) {
+                              if (confirm(t('admin.users.confirmDelete', { name: user.username }))) {
                                 deleteUserMutation.mutate(user.id)
                               }
                             }}
                             className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
-                            title="删除"
+                            title={t('common.delete')}
                           >
                             <Trash2 className="h-4 w-4" />
                           </button>
@@ -190,8 +192,8 @@ export function AdminUsers() {
       {!isLoading && filteredUsers.length === 0 && (
         <div className="card p-12 text-center">
           <Users className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">没有找到用户</h3>
-          <p className="text-gray-500">尝试调整搜索条件</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('admin.users.emptyTitle')}</h3>
+          <p className="text-gray-500">{t('common.searchEmpty')}</p>
         </div>
       )}
     </div>

@@ -1,11 +1,14 @@
 // 服务相关类型
+export type ServiceLifecycleStatus = 'draft' | 'building' | 'running' | 'stopped' | 'error';
+export type TransportType = 'sse' | 'streamable_http' | 'both';
+
 export interface Service {
   id: number;
   name: string;
   slug: string;
   description: string;
-  status: 'draft' | 'building' | 'running' | 'stopped' | 'error';
-  transport_type: 'sse' | 'stdio';
+  status: ServiceLifecycleStatus;
+  transport_type: TransportType;
   port: number | null;
   current_version: number;
   owner_name: string;
@@ -17,10 +20,46 @@ export interface Service {
 
 export interface ServiceStats {
   total: number;
+  draft: number;
   running: number;
   stopped: number;
-  error: number;
+  errors: number;
+  error?: number;
   building: number;
+}
+
+export interface DashboardRecentService {
+  id: number;
+  name: string;
+  status: ServiceLifecycleStatus;
+  updatedAt: string;
+  transport_type: TransportType;
+  port: number | null;
+  current_version: number;
+}
+
+export interface DashboardActivity {
+  id: number;
+  type: 'build' | 'start' | 'stop' | 'restart' | string;
+  service: string;
+  user: string;
+  status: 'pending' | 'running' | 'success' | 'failed' | string;
+  time: string;
+}
+
+export interface DashboardOverview {
+  stats: ServiceStats;
+  health: {
+    running_rate: number;
+    attention_count: number;
+    ready_count: number;
+  };
+  status_breakdown: {
+    status: ServiceLifecycleStatus;
+    count: number;
+  }[];
+  recent_services: DashboardRecentService[];
+  recent_activities: DashboardActivity[];
 }
 
 // 工具相关类型

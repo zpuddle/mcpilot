@@ -6,7 +6,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/Python-3.12-3776AB.svg)](https://python.org)
-[![React 19](https://img.shields.io/badge/React-19-61DAFB.svg)](https://react.dev)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB.svg)](https://react.dev)
 [![FastAPI](https://img.shields.io/badge/FastAPI-009688.svg)](https://fastapi.tiangolo.com)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://docker.com)
 
@@ -45,13 +45,14 @@ MCPilot gives you a full-featured web UI to create MCP-compliant services, write
 - 🔗 **Dependency Management** — Declare inter-service dependencies with topological sorting and cycle detection
 - 🚀 **Multi-Instance Deploy** — Scale services with multiple replicas behind auto-configured Nginx load balancing
 - 🎨 **Theming** — Light, dark, and system-follow themes out of the box
+- 🌐 **Internationalization** — English is the default UI language, with Chinese available from the in-app language switcher
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
 | Backend | Python 3.12 · FastAPI · SQLAlchemy (async) · Pydantic v2 |
-| Frontend | React 19 · TypeScript 6 · Vite 8 · Ant Design 6 |
+| Frontend | React 18 · TypeScript 5.6 · Vite 5 · Tailwind CSS |
 | State | Zustand 5 · TanStack Query 5 |
 | Database | PostgreSQL 16 |
 | Editor | Monaco Editor |
@@ -116,7 +117,7 @@ npm install
 npm run dev
 ```
 
-Open **http://localhost:5173** in your browser.
+Open **http://localhost:3001** in your browser.
 
 ### Default Credentials
 
@@ -179,6 +180,7 @@ mcpilot/
 │   │   ├── api/                # Typed API client
 │   │   ├── pages/              # Page components
 │   │   ├── components/         # Reusable UI components
+│   │   ├── i18n/               # Locale messages and translation provider
 │   │   ├── store/              # Zustand state stores
 │   │   ├── theme/              # Theme tokens & system
 │   │   ├── styles/             # Global CSS
@@ -211,6 +213,25 @@ pytest --cov=app
 cd frontend
 npm run lint
 ```
+
+### Frontend Internationalization
+
+The frontend defaults to English and currently supports English and Chinese. The selected locale is stored in `localStorage` under `mcpilot.locale`. When the locale changes, the app updates `document.documentElement.lang` and `document.title`.
+
+Translation files live under `frontend/src/i18n/locales/`:
+
+- `en.ts` is the source schema for translation keys.
+- `zh.ts` uses `satisfies MessageSchema` to keep Chinese translations key-complete.
+- `frontend/src/i18n/index.tsx` registers available locales and exposes `I18nProvider`, `useI18n`, `translate`, and `getCurrentLocale`.
+- `frontend/src/components/common/LanguageSwitcher.tsx` provides the language selector used in the UI.
+
+To add another language:
+
+1. Create `frontend/src/i18n/locales/<locale>.ts`.
+2. Export the locale object with `satisfies MessageSchema`.
+3. Import it in `frontend/src/i18n/index.tsx`.
+4. Add it to `messages` and `languages`.
+5. Use `t('path.to.key')` in UI code instead of hard-coded visible text.
 
 ## Roadmap
 

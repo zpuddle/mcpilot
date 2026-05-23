@@ -1,6 +1,9 @@
 import { apiClient } from './client'
 import type {
   Service,
+  DashboardActivity,
+  DashboardOverview,
+  DashboardRecentService,
   ServiceStats,
   PaginatedResponse,
   ApiResponse,
@@ -10,6 +13,7 @@ import type {
   ServiceCode,
   ServiceStatus,
   ServiceLogs,
+  TransportType,
 } from '@/types'
 
 export const servicesApi = {
@@ -17,23 +21,15 @@ export const servicesApi = {
     return await apiClient.get('/services/dashboard/stats')
   },
 
-  getRecentActivities: async (): Promise<{
-    id: number
-    type: string
-    service: string
-    user: string
-    status: string
-    time: string
-  }[]> => {
+  getDashboardOverview: async (): Promise<DashboardOverview> => {
+    return await apiClient.get('/services/dashboard/overview')
+  },
+
+  getRecentActivities: async (): Promise<DashboardActivity[]> => {
     return await apiClient.get('/services/dashboard/recent-activities')
   },
 
-  getRecentServices: async (): Promise<{
-    id: number
-    name: string
-    status: string
-    updatedAt: string
-  }[]> => {
+  getRecentServices: async (): Promise<DashboardRecentService[]> => {
     return await apiClient.get('/services/dashboard/recent-services')
   },
 
@@ -52,7 +48,7 @@ export const servicesApi = {
   createService: async (data: {
     name: string
     description: string
-    transport_type: 'sse' | 'stdio'
+    transport_type: TransportType
   }): Promise<Service> => {
     return await apiClient.post('/services/', data)
   },
@@ -62,7 +58,7 @@ export const servicesApi = {
     data: {
       name?: string
       description?: string
-      transport_type?: 'sse' | 'stdio'
+      transport_type?: TransportType
       env_vars?: Record<string, string>
       extra_dependencies?: string
     }

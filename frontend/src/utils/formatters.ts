@@ -1,14 +1,15 @@
 import { clsx, type ClassValue } from 'clsx'
 import { twMerge } from 'tailwind-merge'
 import { formatDistanceToNow } from 'date-fns'
-import { zhCN } from 'date-fns/locale'
+import { enUS, zhCN } from 'date-fns/locale'
+import type { Locale } from '@/i18n'
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string | Date) {
-  return new Date(date).toLocaleDateString('zh-CN', {
+export function formatDate(date: string | Date, locale: Locale = 'en') {
+  return new Date(date).toLocaleDateString(locale === 'zh' ? 'zh-CN' : 'en-US', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
@@ -17,10 +18,10 @@ export function formatDate(date: string | Date) {
   })
 }
 
-export function formatRelativeTime(date: string | Date) {
+export function formatRelativeTime(date: string | Date, locale: Locale = 'en') {
   return formatDistanceToNow(new Date(date), {
     addSuffix: true,
-    locale: zhCN,
+    locale: locale === 'zh' ? zhCN : enUS,
   })
 }
 
@@ -57,15 +58,15 @@ export function getStatusBadgeClasses(status: string) {
 export function getStatusText(status: string) {
   switch (status) {
     case 'running':
-      return '运行中'
+      return 'Running'
     case 'stopped':
-      return '已停止'
+      return 'Stopped'
     case 'building':
-      return '构建中'
+      return 'Building'
     case 'error':
-      return '错误'
+      return 'Error'
     case 'draft':
-      return '草稿'
+      return 'Draft'
     default:
       return status
   }

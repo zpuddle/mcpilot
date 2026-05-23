@@ -1,45 +1,146 @@
-import { Link, useLocation } from 'react-router-dom'
-import { useAuthStore } from '@/store/authStore'
-import { useUIStore } from '@/store/uiStore'
-import { cn } from '@/utils/formatters'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion } from 'framer-motion'
+import type { ComponentType } from 'react'
 import {
-  LayoutDashboard,
-  Server,
+  Activity,
   BookOpen,
-  Users,
+  Cpu,
+  LayoutDashboard,
   LogOut,
   Menu,
-  X,
-  Cpu,
-  Activity,
+  Server,
   ShieldAlert,
+  Users,
+  X,
 } from 'lucide-react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useAuthStore } from '@/store/authStore'
+import { useUIStore } from '@/store/uiStore'
+import { LanguageSwitcher } from '@/components/common/LanguageSwitcher'
+import { useI18n, type TranslationKey } from '@/i18n'
+import { cn } from '@/utils/formatters'
+
+type SidebarItem = {
+  labelKey: TranslationKey
+  icon: ComponentType<{ className?: string }>
+  path: string
+}
 
 const navItems = [
-  { name: '仪表盘', icon: LayoutDashboard, path: '/dashboard' },
-  { name: '服务', icon: Server, path: '/services' },
-  { name: '模板', icon: BookOpen, path: '/templates' },
-]
+  { labelKey: 'nav.dashboard', icon: LayoutDashboard, path: '/dashboard' },
+  { labelKey: 'nav.services', icon: Server, path: '/services' },
+  { labelKey: 'nav.templates', icon: BookOpen, path: '/templates' },
+] satisfies SidebarItem[]
 
 const adminItems = [
-  { name: '用户管理', icon: Users, path: '/admin/users' },
-  { name: '告警管理', icon: ShieldAlert, path: '/admin/alerts' },
-  { name: 'Docker管理', icon: Cpu, path: '/admin/docker' },
-  { name: '审计日志', icon: Activity, path: '/admin/audit' },
-]
+  { labelKey: 'nav.users', icon: Users, path: '/admin/users' },
+  { labelKey: 'nav.alerts', icon: ShieldAlert, path: '/admin/alerts' },
+  { labelKey: 'nav.docker', icon: Cpu, path: '/admin/docker' },
+  { labelKey: 'nav.audit', icon: Activity, path: '/admin/audit' },
+] satisfies SidebarItem[]
 
-export function Sidebar() {
+function Brand() {
+  const { t } = useI18n()
+
+  return (
+    <div className="border-b border-slate-200 p-5">
+      <div className="flex items-center gap-3">
+        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-600">
+          <Cpu className="h-5 w-5 text-white" />
+        </div>
+        <div className="min-w-0">
+          <h1 className="text-lg font-semibold leading-6 text-slate-950">{t('app.name')}</h1>
+          <p className="truncate text-xs text-slate-500">{t('app.tagline')}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function NavigationContent({ onNavigate }: { onNavigate: () => void }) {
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const logout = useAuthStore((state) => state.logout)
+  const navigate = useNavigate()
+  const { t } = useI18n()
+  const isAdmin = user?.role_name === 'admin'
+
+  const handleLogout = () => {
+    logout()
+    onNavigate()
+    navigate('/login', { replace: true })
+  }
+
+  const renderLink = (item: SidebarItem) => {
+    const isActive =
+      item.path === '/dashboard'
+        ? location.pathname === item.path
+        : location.pathname.startsWith(item.path)
+
+    return (
+      <Link
+        key={item.path}
+        to={item.path}
+        onClick={onNavigate}
+        className={cn(
+          'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+          isActive
+            ? 'bg-primary-50 text-primary-700 ring-1 ring-primary-100'
+            : 'text-slate-600 hover:bg-slate-100 hover:text-slate-950'
+        )}
+      >
+        <item.icon className="h-5 w-5 shrink-0" />
+        <span className="truncate">{t(item.labelKey)}</span>
+      </Link>
+    )
+  }
+
+  return (
+    <>
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
+        {navItems.map(renderLink)}
+
+        {isAdmin && (
+          <div className="pt-5">
+            <p className="px-3 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+              {t('nav.admin')}
+            </p>
+            <div className="space-y-1">{adminItems.map(renderLink)}</div>
+          </div>
+        )}
+      </nav>
+
+      <div className="border-t border-slate-200 p-3">
+        <div className="mb-3 px-1">
+          <LanguageSwitcher />
+        </div>
+        <div className="mb-2 flex items-center gap-3 rounded-lg bg-slate-50 p-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-600 text-sm font-semibold text-white">
+            {user?.username?.[0]?.toUpperCase() || 'U'}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-slate-900">{user?.username || 'User'}</p>
+            <p className="truncate text-xs text-slate-500">{user?.email || t('layout.missingEmail')}</p>
+          </div>
+        </div>
+        <button
+          onClick={handleLogout}
+          className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-950"
+        >
+          <LogOut className="h-5 w-5" />
+          {t('layout.logout')}
+        </button>
+      </div>
+    </>
+  )
+}
+
+export function Sidebar() {
   const sidebarOpen = useUIStore((state) => state.sidebarOpen)
   const toggleSidebar = useUIStore((state) => state.toggleSidebar)
   const setSidebarOpen = useUIStore((state) => state.setSidebarOpen)
+  const { t } = useI18n()
 
-  const isAdmin = user?.role_name === 'admin'
-
-  const handleNavClick = () => {
+  const closeMobileSidebar = () => {
     if (window.innerWidth < 1024) {
       setSidebarOpen(false)
     }
@@ -49,89 +150,15 @@ export function Sidebar() {
     <>
       <button
         onClick={toggleSidebar}
-        className="fixed top-4 left-4 z-50 lg:hidden btn-secondary p-2"
+        className="btn-secondary fixed left-4 top-4 z-50 p-2 lg:hidden"
+        aria-label={sidebarOpen ? t('layout.closeSidebar') : t('layout.openSidebar')}
       >
         {sidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
       </button>
 
-      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-40 flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center">
-              <Cpu className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">MCPilot</h1>
-              <p className="text-xs text-gray-500">服务管理平台</p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={handleNavClick}
-              className={cn(
-                'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                location.pathname === item.path
-                  ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-              )}
-            >
-              <item.icon className="h-5 w-5" />
-              {item.name}
-            </Link>
-          ))}
-
-          {isAdmin && (
-            <>
-              <div className="pt-4 pb-2">
-                <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                  管理
-                </p>
-              </div>
-              {adminItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  onClick={handleNavClick}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                    location.pathname.startsWith(item.path)
-                      ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                      : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                  )}
-                >
-                  <item.icon className="h-5 w-5" />
-                  {item.name}
-                </Link>
-              ))}
-            </>
-          )}
-        </nav>
-
-        <div className="p-4 border-t border-gray-200">
-          <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 mb-3">
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-semibold">
-              {user?.username?.[0]?.toUpperCase() || 'U'}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-900 truncate">
-                {user?.username}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-            </div>
-          </div>
-          <button
-            onClick={logout}
-            className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-          >
-            <LogOut className="h-5 w-5" />
-            退出登录
-          </button>
-        </div>
+      <aside className="fixed bottom-0 left-0 top-0 z-40 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+        <Brand />
+        <NavigationContent onNavigate={closeMobileSidebar} />
       </aside>
 
       <AnimatePresence>
@@ -142,93 +169,17 @@ export function Sidebar() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSidebarOpen(false)}
-              className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+              className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden"
             />
-
             <motion.aside
               initial={{ x: -300 }}
               animate={{ x: 0 }}
               exit={{ x: -300 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-gray-200 z-50 flex flex-col lg:hidden"
+              transition={{ type: 'spring', damping: 28, stiffness: 240 }}
+              className="fixed bottom-0 left-0 top-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-slate-200 bg-white shadow-xl lg:hidden"
             >
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 bg-gradient-to-br from-primary-500 to-accent-500 rounded-xl flex items-center justify-center">
-                    <Cpu className="h-6 w-6 text-white" />
-                  </div>
-                  <div>
-                    <h1 className="text-xl font-bold text-gray-900">MCPilot</h1>
-                    <p className="text-xs text-gray-500">服务管理平台</p>
-                  </div>
-                </div>
-              </div>
-
-              <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={handleNavClick}
-                    className={cn(
-                      'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                      location.pathname === item.path
-                        ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                    )}
-                  >
-                    <item.icon className="h-5 w-5" />
-                    {item.name}
-                  </Link>
-                ))}
-
-                {isAdmin && (
-                  <>
-                    <div className="pt-4 pb-2">
-                      <p className="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                        管理
-                      </p>
-                    </div>
-                    {adminItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        onClick={handleNavClick}
-                        className={cn(
-                          'flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200',
-                          location.pathname.startsWith(item.path)
-                            ? 'bg-primary-50 text-primary-700 border border-primary-200'
-                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                        )}
-                      >
-                        <item.icon className="h-5 w-5" />
-                        {item.name}
-                      </Link>
-                    ))}
-                  </>
-                )}
-              </nav>
-
-              <div className="p-4 border-t border-gray-200">
-                <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-400 to-accent-400 flex items-center justify-center text-white font-semibold">
-                    {user?.username?.[0]?.toUpperCase() || 'U'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {user?.username}
-                    </p>
-                    <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={logout}
-                  className="flex items-center gap-3 w-full px-4 py-3 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-all duration-200"
-                >
-                  <LogOut className="h-5 w-5" />
-                  退出登录
-                </button>
-              </div>
+              <Brand />
+              <NavigationContent onNavigate={closeMobileSidebar} />
             </motion.aside>
           </>
         )}

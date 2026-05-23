@@ -14,7 +14,7 @@ interface UIState {
 let notificationId = 0
 
 export const useUIStore = create<UIState>((set) => ({
-  sidebarOpen: true,
+  sidebarOpen: false,
   notifications: [],
 
   toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),

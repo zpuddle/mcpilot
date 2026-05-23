@@ -16,12 +16,15 @@ import {
   Wrench,
 } from 'lucide-react'
 import { servicesApi } from '@/api/services'
+import { useI18n } from '@/i18n'
+import { formatDate } from '@/utils/formatters'
 import type { Tool } from '@/types'
 
 export function ServiceTools() {
   const { id } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { t, locale } = useI18n()
   const serviceId = id ? parseInt(id) : 0
 
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -51,11 +54,11 @@ export function ServiceTools() {
     mutationFn: (data: typeof formData) => servicesApi.createTool(serviceId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tools', serviceId] })
-      toast.success('工具创建成功！')
+      toast.success(t('tools.created'))
       closeModal()
     },
     onError: (error) => {
-      toast.error('创建工具失败')
+      toast.error(t('tools.createFailed'))
       console.error(error)
     },
   })
@@ -65,11 +68,11 @@ export function ServiceTools() {
       servicesApi.updateTool(serviceId, toolId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tools', serviceId] })
-      toast.success('工具更新成功！')
+      toast.success(t('tools.updated'))
       closeModal()
     },
     onError: (error) => {
-      toast.error('更新工具失败')
+      toast.error(t('tools.updateFailed'))
       console.error(error)
     },
   })
@@ -78,10 +81,10 @@ export function ServiceTools() {
     mutationFn: (toolId: number) => servicesApi.deleteTool(serviceId, toolId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tools', serviceId] })
-      toast.success('工具删除成功！')
+      toast.success(t('tools.deleted'))
     },
     onError: (error) => {
-      toast.error('删除工具失败')
+      toast.error(t('tools.deleteFailed'))
       console.error(error)
     },
   })
@@ -93,7 +96,7 @@ export function ServiceTools() {
       queryClient.invalidateQueries({ queryKey: ['tools', serviceId] })
     },
     onError: (error) => {
-      toast.error('更新工具状态失败')
+      toast.error(t('tools.statusUpdateFailed'))
       console.error(error)
     },
   })
@@ -129,8 +132,8 @@ export function ServiceTools() {
     setEditingTool(null)
   }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
     if (editingTool) {
       updateMutation.mutate({ toolId: editingTool.id, data: formData })
     } else {
@@ -139,7 +142,7 @@ export function ServiceTools() {
   }
 
   const handleDelete = (tool: Tool) => {
-    if (window.confirm(`确定要删除工具 "${tool.name}" 吗？`)) {
+    if (window.confirm(t('tools.confirmDelete', { name: tool.name }))) {
       deleteMutation.mutate(tool.id)
     }
   }
@@ -152,10 +155,10 @@ export function ServiceTools() {
     return (
       <div className="space-y-6">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-gray-200 rounded-lg animate-pulse"></div>
+          <div className="h-10 w-10 animate-pulse rounded-lg bg-gray-200" />
           <div className="space-y-2">
-            <div className="w-48 h-8 bg-gray-200 rounded animate-pulse"></div>
-            <div className="w-32 h-4 bg-gray-200 rounded animate-pulse"></div>
+            <div className="h-8 w-48 animate-pulse rounded bg-gray-200" />
+            <div className="h-4 w-32 animate-pulse rounded bg-gray-200" />
           </div>
         </div>
       </div>
@@ -164,11 +167,11 @@ export function ServiceTools() {
 
   if (!service) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
+      <div className="flex min-h-[60vh] items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">服务未找到</h2>
+          <h2 className="mb-2 text-xl font-semibold text-gray-900">{t('service.notFound')}</h2>
           <button onClick={() => navigate('/services')} className="btn-primary mt-4">
-            返回服务列表
+            {t('common.backToServices')}
           </button>
         </div>
       </div>
@@ -183,18 +186,18 @@ export function ServiceTools() {
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">工具管理</h1>
-            <p className="text-gray-500 mt-1">{service.name}</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('tools.title')}</h1>
+            <p className="mt-1 text-gray-500">{service.name}</p>
           </div>
         </div>
         <button onClick={openCreateModal} className="btn-primary">
-          <Plus className="h-4 w-4 mr-2" />
-          添加工具
+          <Plus className="mr-2 h-4 w-4" />
+          {t('tools.add')}
         </button>
       </div>
 
       {tools && tools.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           {tools.map((tool, index) => (
             <motion.div
               key={tool.id}
@@ -203,15 +206,15 @@ export function ServiceTools() {
               transition={{ delay: index * 0.1 }}
               className="card"
             >
-              <div className="flex items-start justify-between mb-4">
-                <div className="h-10 w-10 bg-primary-100 rounded-lg flex items-center justify-center">
+              <div className="mb-4 flex items-start justify-between">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary-100">
                   <Wrench className="h-5 w-5 text-primary-600" />
                 </div>
                 <div className="flex gap-2">
                   <button
                     onClick={() => handleToggle(tool)}
-                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-                    title={tool.is_enabled ? '禁用工具' : '启用工具'}
+                    className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                    title={tool.is_enabled ? t('tools.disableTool') : t('tools.enableTool')}
                   >
                     {tool.is_enabled ? (
                       <ToggleRight className="h-4 w-4 text-green-600" />
@@ -221,15 +224,15 @@ export function ServiceTools() {
                   </button>
                   <button
                     onClick={() => openEditModal(tool)}
-                    className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
-                    title="编辑工具"
+                    className="rounded-lg p-2 text-gray-500 hover:bg-gray-100"
+                    title={t('tools.editTool')}
                   >
                     <Edit className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => handleDelete(tool)}
-                    className="p-2 text-gray-500 hover:bg-red-50 rounded-lg"
-                    title="删除工具"
+                    className="rounded-lg p-2 text-gray-500 hover:bg-red-50"
+                    title={t('tools.deleteTool')}
                   >
                     <Trash2 className="h-4 w-4 text-red-600" />
                   </button>
@@ -237,26 +240,24 @@ export function ServiceTools() {
               </div>
 
               <div className="mb-4">
-                <h3 className="font-semibold text-gray-900 mb-1">{tool.name}</h3>
+                <h3 className="mb-1 font-semibold text-gray-900">{tool.name}</h3>
                 <p className="text-sm text-gray-500">{tool.description}</p>
               </div>
 
               <div className="space-y-2 text-sm">
                 <div className="flex items-center gap-2">
                   <Code className="h-4 w-4 text-gray-400" />
-                  <span className="text-gray-500">处理函数:</span>
-                  <span className="text-gray-900 font-mono">{tool.handler_name}</span>
+                  <span className="text-gray-500">{t('tools.handler')}</span>
+                  <span className="font-mono text-gray-900">{tool.handler_name}</span>
                 </div>
-                <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    tool.is_enabled
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-gray-100 text-gray-500'
+                <div className="flex items-center justify-between border-t border-gray-100 pt-3">
+                  <span className={`rounded-full px-2 py-1 text-xs ${
+                    tool.is_enabled ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}>
-                    {tool.is_enabled ? '已启用' : '已禁用'}
+                    {tool.is_enabled ? t('status.enabled') : t('status.disabled')}
                   </span>
                   <span className="text-xs text-gray-400">
-                    创建于: {new Date(tool.created_at).toLocaleDateString()}
+                    {t('common.createdAt')}: {formatDate(tool.created_at, locale)}
                   </span>
                 </div>
               </div>
@@ -265,80 +266,80 @@ export function ServiceTools() {
         </div>
       ) : (
         <div className="card p-12 text-center">
-          <Wrench className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">暂无工具</h3>
-          <p className="text-gray-500 mb-6">添加你的第一个工具吧！</p>
+          <Wrench className="mx-auto mb-4 h-12 w-12 text-gray-300" />
+          <h3 className="mb-2 text-lg font-medium text-gray-900">{t('tools.emptyTitle')}</h3>
+          <p className="mb-6 text-gray-500">{t('tools.emptyDescription')}</p>
           <button onClick={openCreateModal} className="btn-primary">
-            <Plus className="h-4 w-4 mr-2" />
-            添加工具
+            <Plus className="mr-2 h-4 w-4" />
+            {t('tools.add')}
           </button>
         </div>
       )}
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 p-6">
               <h2 className="text-lg font-semibold text-gray-900">
-                {editingTool ? '编辑工具' : '添加工具'}
+                {editingTool ? t('tools.edit') : t('tools.add')}
               </h2>
-              <button onClick={closeModal} className="p-2 hover:bg-gray-100 rounded-lg">
+              <button onClick={closeModal} className="rounded-lg p-2 hover:bg-gray-100">
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6 p-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  工具名称 *
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('tools.name')} *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  placeholder="例如: get_weather"
+                  onChange={(event) => setFormData({ ...formData, name: event.target.value })}
+                  placeholder={t('tools.namePlaceholder')}
                   className="input w-full"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  工具描述
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('tools.description')}
                 </label>
                 <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  placeholder="描述这个工具的功能..."
+                  onChange={(event) => setFormData({ ...formData, description: event.target.value })}
+                  placeholder={t('tools.descriptionPlaceholder')}
                   rows={3}
                   className="input w-full resize-none"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  处理函数名 *
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('tools.handlerName')} *
                 </label>
                 <input
                   type="text"
                   value={formData.handler_name}
-                  onChange={(e) => setFormData({ ...formData, handler_name: e.target.value })}
-                  placeholder="例如: get_weather_handler"
+                  onChange={(event) => setFormData({ ...formData, handler_name: event.target.value })}
+                  placeholder={t('tools.handlerPlaceholder')}
                   className="input w-full"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  输入 Schema (JSON)
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('tools.inputSchema')}
                 </label>
                 <textarea
                   value={JSON.stringify(formData.input_schema, null, 2)}
-                  onChange={(e) => {
+                  onChange={(event) => {
                     try {
-                      setFormData({ ...formData, input_schema: JSON.parse(e.target.value) })
-                    } catch (err) {
-                      // 忽略解析错误，允许用户继续编辑
+                      setFormData({ ...formData, input_schema: JSON.parse(event.target.value) })
+                    } catch {
+                      // Allow users to keep editing invalid JSON temporarily.
                     }
                   }}
                   placeholder='{"type": "object", "properties": {...}}'
@@ -348,16 +349,16 @@ export function ServiceTools() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  输出 Schema (JSON)
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  {t('tools.outputSchema')}
                 </label>
                 <textarea
                   value={JSON.stringify(formData.output_schema, null, 2)}
-                  onChange={(e) => {
+                  onChange={(event) => {
                     try {
-                      setFormData({ ...formData, output_schema: JSON.parse(e.target.value) })
-                    } catch (err) {
-                      // 忽略解析错误
+                      setFormData({ ...formData, output_schema: JSON.parse(event.target.value) })
+                    } catch {
+                      // Allow users to keep editing invalid JSON temporarily.
                     }
                   }}
                   placeholder='{"type": "object", "properties": {...}}'
@@ -371,29 +372,25 @@ export function ServiceTools() {
                   type="checkbox"
                   id="is_enabled"
                   checked={formData.is_enabled}
-                  onChange={(e) => setFormData({ ...formData, is_enabled: e.target.checked })}
+                  onChange={(event) => setFormData({ ...formData, is_enabled: event.target.checked })}
                   className="rounded"
                 />
                 <label htmlFor="is_enabled" className="text-sm text-gray-700">
-                  启用工具
+                  {t('tools.enableTool')}
                 </label>
               </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-gray-200">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="btn-secondary"
-                >
-                  取消
+              <div className="flex justify-end gap-3 border-t border-gray-200 pt-4">
+                <button type="button" onClick={closeModal} className="btn-secondary">
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
                   className="btn-primary"
                   disabled={createMutation.isPending || updateMutation.isPending}
                 >
-                  <Save className="h-4 w-4 mr-2" />
-                  {editingTool ? '更新' : '创建'}
+                  <Save className="mr-2 h-4 w-4" />
+                  {editingTool ? t('common.update') : t('common.create')}
                 </button>
               </div>
             </form>
